@@ -84,6 +84,85 @@ export interface SurveyResults {
   };
 }
 
+export interface MLInsights {
+  responsePatterns: {
+    mostCommonAnswers: Array<{ question: string; answer: string; frequency: number; confidence: number }>;
+    leastCommonAnswers: Array<{ question: string; answer: string; frequency: number; confidence: number }>;
+    correlations: Array<{ question1: string; question2: string; correlation: number; significance: number }>;
+  };
+  userBehavior: {
+    completionTimeCategories: {
+      fast: number;
+      average: number;
+      slow: number;
+    };
+    dropoffPoints: Array<{ questionIndex: number; dropoffRate: number; confidence: number }>;
+    engagementScore: number;
+    qualityMetrics: {
+      responseLength: number;
+      completeness: number;
+      consistency: number;
+    };
+  };
+  sentimentAnalysis: {
+    overall: {
+      positive: number;
+      neutral: number;
+      negative: number;
+      compound: number;
+      confidence: number;
+    };
+    byQuestion: Array<{ 
+      questionId: string; 
+      sentiment: any; 
+      keywords: string[];
+      emotions: Array<{ emotion: string; intensity: number }>;
+    }>;
+    trends: Array<{ date: string; sentiment: number }>;
+  };
+  clustering: {
+    userGroups: Array<{
+      id: string;
+      name: string;
+      characteristics: string[];
+      size: number;
+      centroid: number[];
+      responses: any[];
+      behaviorProfile: {
+        avgCompletionTime: number;
+        responseQuality: number;
+        engagementLevel: string;
+      };
+    }>;
+    clusteringAccuracy: number;
+    silhouetteScore: number;
+  };
+  predictions: {
+    nextResponseTime: string;
+    expectedCompletionRate: number;
+    qualityScore: number;
+    trendPredictions: Array<{ metric: string; predicted: number; confidence: number }>;
+    recommendations: Array<{ type: string; suggestion: string; impact: string; priority: number }>;
+  };
+  anomalies: Array<{
+    type: 'time' | 'response' | 'pattern' | 'quality';
+    description: string;
+    severity: 'low' | 'medium' | 'high' | 'critical';
+    affectedResponses: string[];
+    confidence: number;
+    suggestedAction: string;
+  }>;
+  modelMetrics: {
+    accuracy: number;
+    precision: number;
+    recall: number;
+    f1Score: number;
+    processingTime: number;
+    dataQuality: number;
+    algorithmUsed: string[];
+  };
+}
+
 // API Functions - NO MORE MOCK DATA
 export const getAllSurveys = async () => {
   const response = await api.get('/surveys');
@@ -122,6 +201,11 @@ export const deleteSurvey = async (surveyId: string) => {
 
 export const getSurveyResults = async (surveyId: string): Promise<{ data: SurveyResults }> => {
   const response = await api.get(`/surveys/${surveyId}/results`);
+  return { data: response.data };
+};
+
+export const getMLInsights = async (surveyId: string): Promise<{ data: MLInsights }> => {
+  const response = await api.get(`/surveys/${surveyId}/ml-insights`);
   return { data: response.data };
 };
 

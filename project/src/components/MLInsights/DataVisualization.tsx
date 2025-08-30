@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { BarChart3, PieChart, LineChart, TrendingUp, Activity } from 'lucide-react';
-import { SurveyResults } from '../../services/api';
-import { MLInsights } from './MLInsightsPage';
+import { SurveyResults, MLInsights } from '../../services/api';
 
 interface DataVisualizationProps {
   mlInsights: MLInsights;
@@ -44,7 +43,7 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({ mlInsights, resul
         <div className="mt-6">
           <h5 className="font-medium text-gray-900 mb-3">Sentiment Trend (7 days)</h5>
           <div className="flex items-end space-x-2 h-32">
-            {mlInsights.sentimentAnalysis.trends.map((trend, index) => (
+            {mlInsights.sentimentAnalysis.trends.map((trend: { date: string; sentiment: number }, index: number) => (
               <div key={index} className="flex-1 flex flex-col items-center">
                 <div 
                   className={`w-full rounded-t transition-all duration-500 ${
@@ -68,7 +67,7 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({ mlInsights, resul
 
   const renderClusteringChart = () => {
     const clusterData = mlInsights.clustering.userGroups;
-    const totalUsers = clusterData.reduce((sum, group) => sum + group.size, 0);
+    const totalUsers = clusterData.reduce((sum: number, group: any) => sum + group.size, 0);
     
     return (
       <div className="space-y-6">
@@ -79,7 +78,7 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({ mlInsights, resul
           <div>
             <h5 className="font-medium text-gray-900 mb-3">Cluster Distribution</h5>
             <div className="space-y-3">
-              {clusterData.map((cluster, index) => {
+              {clusterData.map((cluster: any, index: number) => {
                 const percentage = (cluster.size / totalUsers) * 100;
                 const colors = ['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-orange-500'];
                 return (
@@ -106,7 +105,7 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({ mlInsights, resul
           <div>
             <h5 className="font-medium text-gray-900 mb-3">Behavior Profiles</h5>
             <div className="space-y-4">
-              {clusterData.map((cluster, index) => (
+              {clusterData.map((cluster: any, index: number) => (
                 <div key={cluster.id} className="bg-gray-50 rounded-lg p-4">
                   <h6 className="font-medium text-gray-900 mb-2">{cluster.name}</h6>
                   <div className="grid grid-cols-2 gap-3 text-sm">
@@ -149,7 +148,7 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({ mlInsights, resul
           <div>
             <h5 className="font-medium text-gray-900 mb-3">Most Common Responses</h5>
             <div className="space-y-3">
-              {mlInsights.responsePatterns.mostCommonAnswers.slice(0, 5).map((pattern, index) => (
+              {mlInsights.responsePatterns.mostCommonAnswers.slice(0, 5).map((pattern: any, index: number) => (
                 <div key={index} className="bg-green-50 rounded-lg p-4">
                   <div className="flex justify-between items-start mb-2">
                     <h6 className="font-medium text-gray-900 text-sm">
@@ -177,7 +176,7 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({ mlInsights, resul
           <div>
             <h5 className="font-medium text-gray-900 mb-3">Question Correlations</h5>
             <div className="space-y-3">
-              {mlInsights.responsePatterns.correlations.slice(0, 5).map((corr, index) => (
+              {mlInsights.responsePatterns.correlations.slice(0, 5).map((corr: any, index: number) => (
                 <div key={index} className="bg-blue-50 rounded-lg p-4">
                   <div className="text-sm font-medium text-gray-900 mb-2">
                     Correlation: {corr.correlation.toFixed(3)}
@@ -214,7 +213,7 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({ mlInsights, resul
           <div>
             <h5 className="font-medium text-gray-900 mb-3">ML Predictions</h5>
             <div className="space-y-4">
-              {mlInsights.predictions.trendPredictions.map((pred, index) => (
+              {mlInsights.predictions.trendPredictions.map((pred: any, index: number) => (
                 <div key={index} className="bg-purple-50 rounded-lg p-4">
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-medium text-gray-900">{pred.metric}</span>
