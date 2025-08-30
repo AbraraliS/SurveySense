@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlusCircle, Loader2, Users, MessageSquare, Hash } from 'lucide-react';
-import { createSurvey } from '../services/api';
+import { createSurvey, CreateSurveyRequest } from '../services/api';
 
 export default function CreateSurvey() {
   const navigate = useNavigate();
@@ -22,16 +22,54 @@ export default function CreateSurvey() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!formData.topic.trim()) {
+      setError('Survey topic is required');
+      return;
+    }
+    
+    if (!formData.audience.trim()) {
+      setError('Target audience is required');
+      return;
+    }
+    
+    if (formData.num_questions < 1 || formData.num_questions > 20) {
+      setError('Number of questions must be between 1 and 20');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      const response = await createSurvey(formData);
-      const surveyId = response.data.survey_id;
-      navigate(`/survey/${surveyId}`);
-    } catch (err: any) {
-      console.error('Error creating survey:', err);
-      setError(err.response?.data?.error || 'Failed to create survey. Please try again.');
+      // Ensure all required fields are included
+      const surveyData = {
+        topic: formData.topic.trim(),
+        audience: formData.audience.trim(),
+        num_questions: parseInt(formData.num_questions.toString()) // Ensure it's a number
+      };
+
+      console.log('Creating survey with data:', surveyData); // Debug log
+
+      const response = await createSurvey(surveyData);
+      
+      console.log('Survey created successfully:', response); // Debug log
+      
+      // Redirect to surveys list instead of taking the survey
+      navigate('/surveys');
+      
+    } catch (error: any) {
+      console.error('Error creating survey:', error);
+      
+      // More specific error handling
+      if (error.response?.status === 400) {
+        setError(error.response?.data?.error || 'Invalid survey data. Please check all fields.');
+      } else if (error.response?.status === 500) {
+        setError('Server error. Please try again later.');
+      } else {
+        setError('Failed to create survey. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

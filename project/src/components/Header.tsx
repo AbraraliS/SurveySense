@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, PlusCircle, Home } from 'lucide-react';
+import { BarChart3, Plus, List } from 'lucide-react';
 
-export default function Header() {
+const Header: React.FC = () => {
   const location = useLocation();
 
   const isActive = (path: string) => {
@@ -10,36 +10,35 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white shadow-lg border-b border-gray-100">
+    <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center space-x-2 text-2xl font-bold text-gray-800 hover:text-blue-600 transition-colors">
+          {/* Logo */}
+          <Link to="/" className="flex items-center space-x-3">
             <BarChart3 className="h-8 w-8 text-blue-600" />
-            <span>SurveyAI</span>
+            <span className="text-xl font-bold text-gray-900">SurveySense</span>
           </Link>
 
+          {/* Navigation */}
           <nav className="flex items-center space-x-6">
             <Link
               to="/"
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
-                isActive('/') 
-                  ? 'bg-blue-100 text-blue-700 font-medium' 
-                  : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
-              }`}
+              className="text-gray-600 hover:text-blue-600 font-medium transition-colors"
             >
-              <Home className="h-4 w-4" />
-              <span>Home</span>
+              Home
             </Link>
-            
+            <Link
+              to="/surveys"
+              className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 font-medium transition-colors"
+            >
+              <List className="w-4 h-4" />
+              <span>Your Surveys</span>
+            </Link>
             <Link
               to="/create"
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
-                isActive('/create') 
-                  ? 'bg-blue-100 text-blue-700 font-medium' 
-                  : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
-              }`}
+              className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
             >
-              <PlusCircle className="h-4 w-4" />
+              <Plus className="w-4 h-4" />
               <span>Create Survey</span>
             </Link>
           </nav>
@@ -47,4 +46,6 @@ export default function Header() {
       </div>
     </header>
   );
-}
+};
+
+export default Header;
