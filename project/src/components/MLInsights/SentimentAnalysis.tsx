@@ -48,19 +48,33 @@ const analyzeSentiment = (text: string): SentimentScore => {
 };
 
 const SentimentAnalysis: React.FC<SentimentAnalysisProps> = ({ results }) => {
-  // Extract text responses
+  console.log('Survey results:', results); // Debug log
+  console.log('Questions:', results.questions); // Debug log
+  
+  // Extract text responses - Fix: Use correct property names
   const textResponses = results.questions
-    .filter(q => q.question_type === 'TEXT')
-    .flatMap(question => 
-      results.responses
-        .map(r => r.responses[question.question_id])
-        .filter(Boolean)
+    .filter(q => {
+      // Check both possible property names for question type
+      const questionType = q.question_type || q.type;
+      console.log('Question type:', questionType, 'for question:', q.question_text || q.question); // Debug log
+      return questionType === 'TEXT';
+    })
+    .flatMap(question => {
+      // Get question text from either property
+      const questionText = question.question_text || question.question;
+      const questionId = question.question_id;
+      
+      return results.responses
+        .map(r => r.responses[questionId])
+        .filter(response => response && typeof response === 'string' && response.trim() !== '')
         .map(response => ({
-          questionId: question.question_id,
-          questionText: question.question_text,
+          questionId,
+          questionText,
           response: response as string
-        }))
-    );
+        }));
+    });
+
+  console.log('Text responses found:', textResponses); // Debug log
 
   // Analyze sentiment for each text response
   const sentimentResults = textResponses.map(item => ({
@@ -88,8 +102,12 @@ const SentimentAnalysis: React.FC<SentimentAnalysisProps> = ({ results }) => {
 
   // Group sentiments by question
   const sentimentByQuestion = results.questions
-    .filter(q => q.question_type === 'TEXT')
+    .filter(q => {
+      const questionType = q.question_type || q.type;
+      return questionType === 'TEXT';
+    })
     .map(question => {
+      const questionText = question.question_text || question.question;
       const questionSentiments = sentimentResults.filter(s => s.questionId === question.question_id);
       const avgSentiment = questionSentiments.reduce(
         (acc, item) => ({
@@ -109,7 +127,7 @@ const SentimentAnalysis: React.FC<SentimentAnalysisProps> = ({ results }) => {
       }
 
       return {
-        question: question.question_text,
+        question: questionText,
         sentiment: avgSentiment,
         responseCount: questionSentiments.length,
         responses: questionSentiments
@@ -134,15 +152,47 @@ const SentimentAnalysis: React.FC<SentimentAnalysisProps> = ({ results }) => {
     return 'text-yellow-600';
   };
 
+  // Show debug information and enhanced no-data message
   if (textResponses.length === 0) {
     return (
       <div className="bg-white rounded-2xl shadow-sm border p-8">
         <div className="text-center">
           <AlertCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Text Responses</h3>
-          <p className="text-gray-600">
-            Sentiment analysis requires text responses. This survey only contains multiple choice questions.
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Text Responses Found</h3>
+          <p className="text-gray-600 mb-4">
+            Sentiment analysis requires text responses from survey participants.
           </p>
+          
+          {/* Debug Information */}
+          <div className="bg-gray-50 rounded-lg p-4 text-left">
+            <h4 className="font-medium text-gray-900 mb-2">Debug Information:</h4>
+            <div className="space-y-1 text-sm text-gray-600">
+              <p>Total questions: {results.questions.length}</p>
+              <p>Total responses: {results.responses.length}</p>
+              <p>Questions with types:</p>
+              <ul className="list-disc list-inside ml-4 space-y-1">
+                {results.questions.map((q, index) => {
+                  const questionType = q.question_type || q.type;
+                  const questionText = q.question_text || q.question;
+                  return (
+                    <li key={index}>
+                      <span className="font-mono text-xs bg-gray-200 px-1 rounded">{questionType}</span>
+                      : {questionText?.substring(0, 50)}...
+                    </li>
+                  );
+                })}
+              </ul>
+              
+              {results.responses.length > 0 && (
+                <div className="mt-3">
+                  <p>Sample response data:</p>
+                  <pre className="text-xs bg-gray-200 p-2 rounded mt-1 overflow-auto">
+                    {JSON.stringify(results.responses[0]?.responses, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     );

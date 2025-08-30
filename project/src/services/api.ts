@@ -68,6 +68,8 @@ export interface SurveyResults {
     responses_count: number;
   };
   questions: Array<{
+    type: string;
+    question: string;
     question_id: string;
     question_text: string;
     question_type: string;
