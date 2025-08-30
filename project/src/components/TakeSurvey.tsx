@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CheckCircle, User, Calendar, Phone, Briefcase, Loader2 } from 'lucide-react';
+import { 
+  CheckCircle, 
+  User, 
+  Calendar, 
+  Phone, 
+  Briefcase, 
+  Loader2, 
+  Eye, 
+  Clock,
+  MessageSquare,
+  List,
+  ChevronDown,
+  ChevronUp,
+  Home
+} from 'lucide-react';
 import { getSurvey, submitSurveyResponse } from '../services/api';
 
 interface Question {
@@ -40,12 +54,22 @@ const TakeSurvey: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [userDetailsErrors, setUserDetailsErrors] = useState<Record<string, string>>({});
+  const [submissionTime, setSubmissionTime] = useState<Date | null>(null);
+  const [showResponseDetails, setShowResponseDetails] = useState(false);
+  const [completionTime, setCompletionTime] = useState<number>(0);
+  const [startTime, setStartTime] = useState<Date | null>(null);
 
   useEffect(() => {
     if (surveyId) {
       fetchSurvey();
     }
   }, [surveyId]);
+
+  useEffect(() => {
+    if (currentStep === 'questions' && !startTime) {
+      setStartTime(new Date());
+    }
+  }, [currentStep, startTime]);
 
   const fetchSurvey = async () => {
     try {
@@ -114,6 +138,13 @@ const TakeSurvey: React.FC = () => {
     setError('');
 
     try {
+      // Calculate completion time
+      const endTime = new Date();
+      if (startTime) {
+        const timeTaken = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
+        setCompletionTime(timeTaken);
+      }
+
       // Format responses for the API
       const formattedResponses: Record<string, string> = {};
       survey.questions.forEach(q => {
@@ -126,6 +157,7 @@ const TakeSurvey: React.FC = () => {
         responses: formattedResponses
       });
 
+      setSubmissionTime(endTime);
       setCurrentStep('submitted');
     } catch (error) {
       console.error('Error submitting response:', error);
@@ -133,6 +165,49 @@ const TakeSurvey: React.FC = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleCheckResponse = () => {
+    // Navigate to survey results page
+    navigate(`/survey/${surveyId}/results`);
+  };
+
+  const formatTime = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}m ${remainingSeconds}s`;
+  };
+
+  const formatDateTime = (date: Date): string => {
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getResponseSummary = () => {
+    if (!survey) return { mcqCount: 0, textCount: 0, totalWords: 0 };
+    
+    let mcqCount = 0;
+    let textCount = 0;
+    let totalWords = 0;
+
+    survey.questions.forEach(question => {
+      const response = responses[question.question_id];
+      if (response) {
+        if (question.type === 'MCQ') {
+          mcqCount++;
+        } else {
+          textCount++;
+          totalWords += response.split(' ').filter(word => word.trim() !== '').length;
+        }
+      }
+    });
+
+    return { mcqCount, textCount, totalWords };
   };
 
   if (loading) {
@@ -353,26 +428,167 @@ const TakeSurvey: React.FC = () => {
     );
   }
 
-  // Submitted Step
+  // Submitted Step - Enhanced with Response Details
   if (currentStep === 'submitted') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
-        <div className="max-w-md mx-auto text-center">
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-            <div className="flex items-center justify-center mb-4">
-              <CheckCircle className="h-10 w-10 text-green-600" />
-            </div>
-            <p className="text-lg font-semibold text-green-800 mb-2">Thank you for completing the survey!</p>
-            <p className="text-gray-600">Your responses have been recorded successfully.</p>
-          </div>
+    const responseSummary = getResponseSummary();
 
-          <div className="mt-8">
-            <button
-              onClick={() => navigate('/')}
-              className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-            >
-              Back to Home
-            </button>
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            {/* Success Message */}
+            <div className="bg-green-50 border border-green-200 rounded-2xl p-8 mb-8">
+              <div className="text-center">
+                <div className="flex items-center justify-center mb-6">
+                  <CheckCircle className="h-16 w-16 text-green-600" />
+                </div>
+                <h2 className="text-3xl font-bold text-green-800 mb-4">Thank You, {userDetails.name}!</h2>
+                <p className="text-lg font-semibold text-green-700 mb-2">
+                  Survey completed successfully
+                </p>
+                <p className="text-gray-600 mb-6">
+                  Your responses have been recorded and will help improve our understanding of {survey.audience}.
+                </p>
+                {submissionTime && (
+                  <p className="text-sm text-green-600 font-medium">
+                    Submitted on {formatDateTime(submissionTime)}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Response Summary */}
+            <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">Response Summary</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <Clock className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-blue-600">{formatTime(completionTime)}</div>
+                  <div className="text-sm text-blue-700">Completion Time</div>
+                </div>
+                
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-green-600">{survey.questions.length}</div>
+                  <div className="text-sm text-green-700">Questions Answered</div>
+                </div>
+                
+                <div className="text-center p-4 bg-purple-50 rounded-lg">
+                  <List className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-purple-600">{responseSummary.mcqCount}</div>
+                  <div className="text-sm text-purple-700">Multiple Choice</div>
+                </div>
+                
+                <div className="text-center p-4 bg-orange-50 rounded-lg">
+                  <MessageSquare className="w-8 h-8 text-orange-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-orange-600">{responseSummary.totalWords}</div>
+                  <div className="text-sm text-orange-700">Words Written</div>
+                </div>
+              </div>
+
+              {/* User Details */}
+              <div className="border-t border-gray-200 pt-6 mb-6">
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">Your Details</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-3">
+                    <User className="w-5 h-5 text-gray-500" />
+                    <div>
+                      <span className="text-sm text-gray-600">Name:</span>
+                      <span className="ml-2 font-medium">{userDetails.name}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Calendar className="w-5 h-5 text-gray-500" />
+                    <div>
+                      <span className="text-sm text-gray-600">Age:</span>
+                      <span className="ml-2 font-medium">{userDetails.age}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Phone className="w-5 h-5 text-gray-500" />
+                    <div>
+                      <span className="text-sm text-gray-600">Contact:</span>
+                      <span className="ml-2 font-medium">{userDetails.contact}</span>
+                    </div>
+                  </div>
+                  {userDetails.occupation && (
+                    <div className="flex items-center space-x-3">
+                      <Briefcase className="w-5 h-5 text-gray-500" />
+                      <div>
+                        <span className="text-sm text-gray-600">Occupation:</span>
+                        <span className="ml-2 font-medium">{userDetails.occupation}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Response Details Toggle */}
+              <div className="border-t border-gray-200 pt-6">
+                <button
+                  onClick={() => setShowResponseDetails(!showResponseDetails)}
+                  className="flex items-center justify-between w-full text-left"
+                >
+                  <h4 className="text-lg font-semibold text-gray-900">Your Responses</h4>
+                  {showResponseDetails ? (
+                    <ChevronUp className="w-5 h-5 text-gray-500" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-500" />
+                  )}
+                </button>
+                
+                {showResponseDetails && (
+                  <div className="mt-6 space-y-6">
+                    {survey.questions.map((question, index) => (
+                      <div key={question.question_id} className="border border-gray-200 rounded-lg p-4">
+                        <h5 className="font-medium text-gray-900 mb-3">
+                          {index + 1}. {question.question}
+                        </h5>
+                        <div className="bg-blue-50 rounded-lg p-4">
+                          <div className="flex items-start space-x-2">
+                            {question.type === 'MCQ' ? (
+                              <List className="w-4 h-4 text-blue-600 mt-0.5" />
+                            ) : (
+                              <MessageSquare className="w-4 h-4 text-blue-600 mt-0.5" />
+                            )}
+                            <div className="flex-1">
+                              <p className="text-blue-800 font-medium">
+                                {responses[question.question_id] || 'No response'}
+                              </p>
+                              {question.type === 'TEXT' && responses[question.question_id] && (
+                                <p className="text-xs text-blue-600 mt-1">
+                                  {responses[question.question_id].split(' ').filter(word => word.trim() !== '').length} words
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-4">
+              <button
+                onClick={handleCheckResponse}
+                className="w-full bg-blue-600 text-white py-4 px-6 rounded-xl font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 text-lg"
+              >
+                <Eye className="w-6 h-6" />
+                <span>View Survey Results & Analytics</span>
+              </button>
+              
+              <button
+                onClick={() => navigate('/')}
+                className="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-xl font-semibold hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2"
+              >
+                <Home className="w-5 h-5" />
+                <span>Back to Home</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
