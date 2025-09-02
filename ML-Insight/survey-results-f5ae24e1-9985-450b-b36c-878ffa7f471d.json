@@ -1,0 +1,147 @@
+{
+  "survey": {
+    "survey_id": "f5ae24e1-9985-450b-b36c-878ffa7f471d",
+    "topic": "Student AI/ML session review",
+    "audience": "College Student",
+    "created_at": "2025-08-30T16:56:55.019098+00:00",
+    "questions_count": 5,
+    "responses_count": 5
+  },
+  "questions": [
+    {
+      "question_id": "252bb7b5-f70c-4a85-a2ab-2ae6b35bb524",
+      "question_text": "How would you rate the overall quality of the AI/ML session?",
+      "question_type": "mcq",
+      "options": [
+        "Excellent - Exceeded expectations",
+        "Good - Met expectations",
+        "Fair - Somewhat helpful",
+        "Poor - Not helpful"
+      ]
+    },
+    {
+      "question_id": "10f32efd-e98f-4e22-abe4-f773b499d97b",
+      "question_text": "Which aspect of the session did you find most valuable?",
+      "question_type": "mcq",
+      "options": [
+        "Hands-on coding exercises",
+        "Concept explanations/theory",
+        "Real-world application examples",
+        "Q&A/discussion with presenter"
+      ]
+    },
+    {
+      "question_id": "ace64744-a885-4ffb-a823-f9fff98b22bf",
+      "question_text": "How relevant was the session content to your current studies or interests?",
+      "question_type": "mcq",
+      "options": [
+        "Highly relevant",
+        "Moderately relevant",
+        "Slightly relevant",
+        "Not relevant at all"
+      ]
+    },
+    {
+      "question_id": "16e044b1-4b3b-4367-b6d4-c80532174695",
+      "question_text": "What was your biggest takeaway from this AI/ML session, and how do you plan to apply it?",
+      "question_type": "text"
+    },
+    {
+      "question_id": "8df202a1-02c3-4629-9907-822fa9c14141",
+      "question_text": "What specific topics would you like to see covered in future AI/ML sessions?",
+      "question_type": "text"
+    }
+  ],
+  "responses": [
+    {
+      "response_id": "4a9fb051-773a-42f5-aba0-8f9aed440cef",
+      "survey_id": "f5ae24e1-9985-450b-b36c-878ffa7f471d",
+      "user_id": "4a9fb051-773a-42f5-aba0-8f9aed440cef",
+      "user_name": "Vinod",
+      "user_email": "null@gmail.com",
+      "responses": {
+        "252bb7b5-f70c-4a85-a2ab-2ae6b35bb524": "Excellent - Exceeded expectations",
+        "10f32efd-e98f-4e22-abe4-f773b499d97b": "Real-world application examples",
+        "ace64744-a885-4ffb-a823-f9fff98b22bf": "Moderately relevant",
+        "16e044b1-4b3b-4367-b6d4-c80532174695": "Nothing",
+        "8df202a1-02c3-4629-9907-822fa9c14141": "Practical Session"
+      },
+      "submitted_at": "2025-09-02T16:22:28.297071+00:00",
+      "completion_time": 315
+    },
+    {
+      "response_id": "51d4b21f-cb53-4592-8f2b-4228d6d2d668",
+      "survey_id": "f5ae24e1-9985-450b-b36c-878ffa7f471d",
+      "user_id": "51d4b21f-cb53-4592-8f2b-4228d6d2d668",
+      "user_name": "Vicky",
+      "user_ip": "unknown",
+      "responses": {
+        "252bb7b5-f70c-4a85-a2ab-2ae6b35bb524": "Excellent - Exceeded expectations",
+        "10f32efd-e98f-4e22-abe4-f773b499d97b": "Hands-on coding exercises",
+        "ace64744-a885-4ffb-a823-f9fff98b22bf": "Highly relevant",
+        "16e044b1-4b3b-4367-b6d4-c80532174695": "Nothiing",
+        "8df202a1-02c3-4629-9907-822fa9c14141": "Nothiing"
+      },
+      "submitted_at": "2025-09-01T09:06:02.399015+00:00",
+      "completion_time": 265
+    },
+    {
+      "response_id": "90a0bddd-820d-47f6-9239-6333808ab425",
+      "survey_id": "f5ae24e1-9985-450b-b36c-878ffa7f471d",
+      "user_id": "90a0bddd-820d-47f6-9239-6333808ab425",
+      "user_name": "Nutan",
+      "user_email": "nutan@gmail.com",
+      "responses": {
+        "252bb7b5-f70c-4a85-a2ab-2ae6b35bb524": "Good - Met expectations",
+        "10f32efd-e98f-4e22-abe4-f773b499d97b": "Hands-on coding exercises",
+        "ace64744-a885-4ffb-a823-f9fff98b22bf": "Highly relevant",
+        "16e044b1-4b3b-4367-b6d4-c80532174695": "Best",
+        "8df202a1-02c3-4629-9907-822fa9c14141": "Best\n"
+      },
+      "submitted_at": "2025-08-30T17:14:57.538162+00:00",
+      "completion_time": 262
+    },
+    {
+      "response_id": "657bfbf0-f8e4-43a6-aab7-97ff455c82ba",
+      "survey_id": "f5ae24e1-9985-450b-b36c-878ffa7f471d",
+      "user_id": "657bfbf0-f8e4-43a6-aab7-97ff455c82ba",
+      "user_name": "Vicky",
+      "user_email": "vi@gmail.com",
+      "responses": {
+        "252bb7b5-f70c-4a85-a2ab-2ae6b35bb524": "Fair - Somewhat helpful",
+        "10f32efd-e98f-4e22-abe4-f773b499d97b": "Q&A/discussion with presenter",
+        "ace64744-a885-4ffb-a823-f9fff98b22bf": "Slightly relevant",
+        "16e044b1-4b3b-4367-b6d4-c80532174695": "Nothing good",
+        "8df202a1-02c3-4629-9907-822fa9c14141": "Nothing Want\n"
+      },
+      "submitted_at": "2025-08-30T17:11:53.569637+00:00",
+      "completion_time": 227
+    },
+    {
+      "response_id": "d05de1e4-86cb-4aca-a685-027f983ae041",
+      "survey_id": "f5ae24e1-9985-450b-b36c-878ffa7f471d",
+      "user_id": "d05de1e4-86cb-4aca-a685-027f983ae041",
+      "user_name": "Aman",
+      "user_email": "aman@gmail.com",
+      "responses": {
+        "252bb7b5-f70c-4a85-a2ab-2ae6b35bb524": "Good - Met expectations",
+        "10f32efd-e98f-4e22-abe4-f773b499d97b": "Hands-on coding exercises",
+        "ace64744-a885-4ffb-a823-f9fff98b22bf": "Moderately relevant",
+        "16e044b1-4b3b-4367-b6d4-c80532174695": "Nice and good",
+        "8df202a1-02c3-4629-9907-822fa9c14141": "An Handfull examples\n"
+      },
+      "submitted_at": "2025-08-30T16:58:42.383539+00:00",
+      "completion_time": 158
+    }
+  ],
+  "analytics": {
+    "total_responses": 5,
+    "completion_rate": 95,
+    "average_completion_time": 120,
+    "response_by_date": {
+      "2025-09-02": 1,
+      "2025-09-01": 1,
+      "2025-08-30": 3
+    }
+  }
+}
