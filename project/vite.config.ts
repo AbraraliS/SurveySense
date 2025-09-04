@@ -5,8 +5,11 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   define: {
-    global: 'globalThis',
-    'process.env': {}, // Add this to prevent process errors
+    __API_URL__: JSON.stringify(process.env.VITE_API_BASE_URL),
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
   },
   server: {
     port: 5173,
