@@ -179,7 +179,7 @@ export interface MLInsights {
 
 // API Functions - NO MORE MOCK DATA
 export const getAllSurveys = async () => {
-  const response = await api.get('/surveys');
+  const response = await api.get('${API_BASE_URL}/surveys');
   return response.data;
 };
 
