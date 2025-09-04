@@ -1,52 +1,61 @@
 import axios from 'axios';
 
-// Get API base URL from environment with proper fallback
+// Debug environment variables
+console.log('🔍 Environment Variables Debug:');
+console.log('VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
+console.log('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
+console.log('All env vars:', import.meta.env);
+
+// Get API base URL with better fallback handling
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://survey-sense-backend.onrender.com/api';
 
-console.log('🔗 API Base URL:', API_BASE_URL); // Debug log to see what URL is being used
+console.log('🔗 Final API Base URL:', API_BASE_URL);
 
-// Validate that we have a proper URL
-if (!API_BASE_URL || API_BASE_URL.includes('${') || API_BASE_URL === 'undefined') {
-  console.error('❌ Invalid API_BASE_URL:', API_BASE_URL);
-  console.error('Using fallback URL');
+// Validate URL format
+if (API_BASE_URL.includes('${') || API_BASE_URL === 'undefined' || !API_BASE_URL.startsWith('http')) {
+  console.error('❌ Invalid API_BASE_URL detected:', API_BASE_URL);
+  console.error('Using hardcoded fallback URL');
 }
 
-// Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 60000, // 🔥 Increased from 10000ms to 60000ms (60 seconds)
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Add request interceptor for debugging
+// Enhanced request interceptor
 api.interceptors.request.use(
   (config) => {
-    console.log('API Request:', config.method?.toUpperCase(), (config.baseURL ?? '') + config.url);
-    console.log('Request data:', config.data);
+    const fullURL = `${config.baseURL}${config.url}`;
+    console.log('📡 API Request:', config.method?.toUpperCase(), fullURL);
     return config;
   },
   (error) => {
-    console.error('Request error:', error);
+    console.error('❌ Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
 
-// Add response interceptor for better error handling
+// Enhanced response interceptor
 api.interceptors.response.use(
   (response) => {
-    console.log('API Response:', response.status, response.config.url);
+    console.log('✅ API Response:', response.status, response.config.url);
     return response;
   },
   (error) => {
-    console.error('API Error:', {
+    const fullURL = error.config ? `${error.config.baseURL}${error.config.url}` : 'unknown';
+    console.error('❌ API Error Details:', {
       message: error.message,
       code: error.code,
       status: error.response?.status,
       url: error.config?.url,
-      fullURL: error.config?.baseURL + error.config?.url,
-      data: error.response?.data
+      fullURL: fullURL,
+      baseURL: error.config?.baseURL,
+      data: typeof error.response?.data === 'string' ? 
+        error.response.data.substring(0, 200) + '...' : 
+        error.response?.data
     });
     return Promise.reject(error);
   }
