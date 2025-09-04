@@ -6,25 +6,39 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 60000, // 🔥 Increased from 10000ms to 60000ms (60 seconds)
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Add interceptors for debugging
+// Add request interceptor for debugging
 api.interceptors.request.use(
   (config) => {
     console.log('API Request:', config.method?.toUpperCase(), config.url);
+    console.log('Request data:', config.data);
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    console.error('Request error:', error);
+    return Promise.reject(error);
+  }
 );
 
+// Add response interceptor for better error handling
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('API Response:', response.status, response.config.url);
+    return response;
+  },
   (error) => {
-    console.error('API Error:', error.response?.data || error.message);
+    console.error('API Error:', {
+      message: error.message,
+      code: error.code,
+      status: error.response?.status,
+      url: error.config?.url,
+      data: error.response?.data
+    });
     return Promise.reject(error);
   }
 );

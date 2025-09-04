@@ -80,10 +80,16 @@ menu = st.sidebar.radio("Navigation", [
 # ----------------------
 def show_overview(df):
     st.title("Overview ✅")
+    st.markdown("""
+    This section provides a high-level summary of your survey data, including total responses, average completion time, and how responses are distributed over time. Use it to quickly understand participation and engagement trends, and to spot peaks or gaps in response activity.
+    """)
     st.write(f"**Total responses:** {len(df)}")
     # Completion rate and time
     time_col = next((col for col in df.columns if 'time' in col.lower() and ('complete' in col.lower() or 'duration' in col.lower())), None)
+    # Try to find a date column, fallback to 'submitted_at' if present
     date_col = next((col for col in df.columns if 'date' in col.lower() or 'timestamp' in col.lower()), None)
+    if not date_col and 'submitted_at' in df.columns:
+        date_col = 'submitted_at'
     if time_col:
         avg_time = df[time_col].dropna().mean()
         st.write(f"**Average completion time:** {avg_time:.1f} seconds")
@@ -94,6 +100,7 @@ def show_overview(df):
         daily_counts = df[date_col].dt.date.value_counts().sort_index()
         fig = px.line(x=daily_counts.index, y=daily_counts.values, labels={'x': 'Date', 'y': 'Responses'}, title="Responses Over Time")
         st.plotly_chart(fig, use_container_width=True)
+        st.caption("Line chart: Number of survey responses submitted each day.")
     else:
         st.info("No date/timestamp column found.")
 
@@ -102,6 +109,9 @@ def show_overview(df):
 # ----------------------
 def show_mcq_analytics(df):
     st.title("MCQ Analytics 📊")
+    st.markdown("""
+    This section analyzes multiple-choice (MCQ) questions in your survey. It shows how often each answer was chosen, the percentage breakdown, relationships between questions, and clusters of similar respondents. Use it to identify popular and unpopular options, discover patterns and correlations, and segment respondents into groups for targeted insights.
+    """)
     from pandas.api.types import is_object_dtype
     mcq_cols = [col for col in df.columns if is_object_dtype(df[col]) and 2 <= df[col].nunique() < 20]
     if not mcq_cols:
@@ -112,11 +122,14 @@ def show_mcq_analytics(df):
         percentages = df[col].value_counts(normalize=True, dropna=False) * 100
         freq_df = pd.DataFrame({'Count': counts, 'Percentage': percentages.round(2)})
         st.subheader(f"{col}")
+        st.markdown(f"Frequency and percentage of each answer for: _{col}_")
         st.dataframe(freq_df)
         fig = px.bar(freq_df.reset_index(), x=col, y='Count', title=f"Bar Chart: {col}")
         st.plotly_chart(fig, use_container_width=True)
+        st.caption("Bar chart: Number of responses for each option.")
     # Correlation heatmap
     st.subheader("Correlation Heatmap")
+    st.markdown("Shows how answers to different MCQ questions are related. Darker colors mean stronger correlation.")
     try:
         mcq_encoded = df[mcq_cols].apply(lambda x: LabelEncoder().fit_transform(x.astype(str)))
         corr = mcq_encoded.corr()
@@ -126,6 +139,7 @@ def show_mcq_analytics(df):
         st.info(f"Could not plot MCQ correlation heatmap: {e}")
     # Cluster visualization
     st.subheader("Cluster Visualization (2D PCA)")
+    st.markdown("Each dot is a respondent, colored by cluster. Clusters group people with similar answer patterns.")
     try:
         encoded = pd.get_dummies(df[mcq_cols], dummy_na=True)
         pca = PCA(n_components=2)
@@ -142,36 +156,50 @@ def show_mcq_analytics(df):
 # ----------------------
 def show_text_feedback(df):
     st.title("Text Feedback (NLP) 💬")
-    text_col = next((col for col in df.columns if any(x in col.lower() for x in ['text', 'feedback', 'comment'])), None)
-    if not text_col or df[text_col].dropna().astype(str).str.len().sum() == 0:
-        st.warning("No text feedback column found or column is empty.")
+    st.markdown("""
+    This section analyzes open-ended (text) feedback using Natural Language Processing (NLP):
+    - WordCloud: Most frequent words in feedback.
+    - Sentiment: Overall tone (positive/negative/neutral).
+    - Topics: Main themes in responses.
+    Use it to quickly see what people are talking about and spot common concerns, suggestions, or praise.
+    """)
+    # Combine all text columns
+    text_cols = [col for col in df.columns if any(x in col.lower() for x in ['text', 'feedback', 'comment'])]
+    # Only keep text columns that have at least one non-empty value
+    text_cols = [col for col in text_cols if df[col].dropna().astype(str).str.strip().replace('nan','').str.len().sum() > 0]
+    combined_text = df[text_cols].astype(str).apply(lambda row: ' '.join([v for v in row if v and v.lower() != 'nan']), axis=1) if text_cols else pd.Series(dtype=str)
+    if combined_text.empty or combined_text.str.strip().replace('nan','').str.len().sum() == 0:
+        st.warning("No text feedback found in any text columns.")
         return
     # WordCloud
     st.subheader("WordCloud of Feedback")
-    all_words = ' '.join(df[text_col].dropna().astype(str))
+    st.caption("A visual summary of the most common words in all text feedback.")
+    all_words = ' '.join(combined_text.dropna().astype(str))
     wordcloud = WordCloud(width=800, height=400, background_color='white').generate(all_words)
     buf = io.BytesIO()
     wordcloud.to_image().save(buf, format='PNG')
     st.image(buf.getvalue())
     # Sentiment (simple rule-based)
     st.subheader("Sentiment Distribution")
+    st.caption("Histogram: Distribution of sentiment scores (from negative to positive). Uses VADER sentiment analysis.")
     try:
         from nltk.sentiment import SentimentIntensityAnalyzer
         import nltk
         nltk.download('vader_lexicon', quiet=True)
         sia = SentimentIntensityAnalyzer()
-        sentiments = df[text_col].dropna().astype(str).apply(lambda x: sia.polarity_scores(x)['compound'])
+        sentiments = combined_text.dropna().astype(str).apply(lambda x: sia.polarity_scores(x)['compound'])
         fig = px.histogram(sentiments, nbins=20, title="Sentiment Distribution (VADER)")
         st.plotly_chart(fig, use_container_width=True)
     except Exception as e:
         st.info(f"Could not compute sentiment: {e}")
     # Topic modeling (LDA)
     st.subheader("Topic Modeling (Top 5 Topics)")
+    st.caption("Top 5 topics extracted from feedback using LDA topic modeling. Each topic is a group of keywords that often appear together.")
     try:
         from sklearn.feature_extraction.text import CountVectorizer
         from sklearn.decomposition import LatentDirichletAllocation
         vectorizer = CountVectorizer(max_df=0.95, min_df=2, stop_words='english')
-        dtm = vectorizer.fit_transform(df[text_col].dropna().astype(str))
+        dtm = vectorizer.fit_transform(combined_text.dropna().astype(str))
         lda = LatentDirichletAllocation(n_components=5, random_state=42)
         lda.fit(dtm)
         words = vectorizer.get_feature_names_out()
@@ -189,33 +217,54 @@ def show_text_feedback(df):
 # ----------------------
 def show_predictive_modeling(df):
     st.title("Predictive Modeling 🤖")
+    st.markdown("""
+    This section uses machine learning to predict overall session ratings based on MCQ answers. It shows model performance and which features matter most. Use it to understand what drives high or low ratings and to identify the most important factors for satisfaction.
+    """)
     # Identify target
-    target_col = next((col for col in df.columns if 'overall' in col.lower() and 'rating' in col.lower()), None)
-    text_col = next((col for col in df.columns if any(x in col.lower() for x in ['text', 'feedback', 'comment'])), None)
-    if not target_col:
-        st.warning("No target column (overall rating) found.")
+    # Use exact question text for target
+    target_col = 'How would you rate the overall quality of the AI/ML session?'
+    # Exclude all text columns from features
+    text_cols = [col for col in df.columns if any(x in col.lower() for x in ['text', 'feedback', 'comment'])]
+    if target_col not in df.columns:
+        st.warning("No target column (overall quality) found.")
         return
-    feature_cols = [col for col in df.columns if col != target_col and col != text_col and df[col].dtype == 'object']
+    feature_cols = [col for col in df.columns if col != target_col and col not in text_cols and df[col].dtype == 'object']
     X_cat = pd.get_dummies(df[feature_cols], dummy_na=True) if feature_cols else pd.DataFrame()
     y = df[target_col].astype(str)
     if X_cat.shape[1] == 0:
         st.warning("No categorical features for modeling.")
         return
-    X_train, X_test, y_train, y_test = train_test_split(X_cat, y, test_size=0.2, random_state=42, stratify=y)
+    # If only one class, skip modeling
+    if len(y.unique()) < 2:
+        st.warning("Not enough classes in target for modeling.")
+        return
+    # Check for minimum samples per class
+    class_counts = y.value_counts()
+    if (class_counts < 2).any():
+        st.warning("Each class in the target must have at least 2 samples for modeling. Current class counts: " + str(class_counts.to_dict()))
+        return
+    try:
+        X_train, X_test, y_train, y_test = train_test_split(X_cat, y, test_size=0.2, random_state=42, stratify=y)
+    except ValueError as e:
+        st.warning(f"Could not split data for modeling: {e}")
+        return
     clf = RandomForestClassifier(n_estimators=100, random_state=42)
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
     # Classification report
     st.subheader("Classification Report")
+    st.caption("Precision, recall, and F1-score for each rating class. Higher values mean better model performance.")
     report = classification_report(y_test, y_pred, output_dict=True)
     st.dataframe(pd.DataFrame(report).transpose())
     # Confusion matrix
     st.subheader("Confusion Matrix")
+    st.caption("Matrix showing how often the model predicted each class vs. the true class. Diagonal = correct predictions.")
     cm = confusion_matrix(y_test, y_pred, labels=clf.classes_)
     fig = px.imshow(cm, text_auto=True, x=clf.classes_, y=clf.classes_, color_continuous_scale='Blues', title="Confusion Matrix")
     st.plotly_chart(fig, use_container_width=True)
     # Feature importance
     st.subheader("Feature Importance")
+    st.caption("Top 10 most important features (MCQ answers) for predicting the overall rating.")
     importances = clf.feature_importances_
     indices = np.argsort(importances)[-10:][::-1]
     fig = px.bar(x=[X_cat.columns[i] for i in indices], y=importances[indices], labels={'x': 'Feature', 'y': 'Importance'}, title="Top 10 Feature Importances")
@@ -226,6 +275,9 @@ def show_predictive_modeling(df):
 # ----------------------
 def show_dashboard_summary(df):
     st.title("Dashboard Summary 💡")
+    st.markdown("""
+    This section brings together the most important findings from all analyses, with summary charts and key insights. Use it for a quick executive overview of the survey results and to share highlights with stakeholders.
+    """)
     st.markdown("""
     ### Key Findings
     - MCQ clusters reveal distinct respondent groups and preferences.

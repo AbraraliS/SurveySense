@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Trash2, Plus, Loader2, GripVertical, Edit3, Type, List } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, Plus, Loader2, GripVertical, Edit3, Type, List, PlusCircle } from 'lucide-react';
 import { getSurvey, updateSurvey } from '../services/api';
 import axios from 'axios';
 
@@ -12,6 +12,7 @@ interface Question {
   question: string;
   type: 'MCQ' | 'TEXT';
   options?: string[];
+  isNew?: boolean; // Add flag for new questions
 }
 
 interface SurveyData {
@@ -118,6 +119,73 @@ const EditSurvey: React.FC = () => {
     }
   };
 
+  // 🔥 NEW: Add Question Functionality
+  const addQuestion = (type: 'MCQ' | 'TEXT' = 'MCQ') => {
+    if (survey) {
+      const newQuestion: Question = {
+        question_id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        question: '',
+        type: type,
+        options: type === 'MCQ' ? ['Option 1', 'Option 2', 'Option 3', 'Option 4'] : undefined,
+        isNew: true
+      };
+
+      setSurvey(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          questions: [...prev.questions, newQuestion]
+        };
+      });
+
+      // Scroll to new question after a brief delay
+      setTimeout(() => {
+        const element = document.getElementById(`question-${newQuestion.question_id}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+  };
+
+  // 🔥 NEW: Remove Question Functionality
+  const removeQuestion = (questionId: string) => {
+    if (survey && survey.questions.length > 1) {
+      setSurvey(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          questions: prev.questions.filter(q => q.question_id !== questionId)
+        };
+      });
+    }
+  };
+
+  // 🔥 NEW: Move Question Up/Down
+  const moveQuestion = (questionId: string, direction: 'up' | 'down') => {
+    if (survey) {
+      setSurvey(prev => {
+        if (!prev) return null;
+        const questions = [...prev.questions];
+        const currentIndex = questions.findIndex(q => q.question_id === questionId);
+        
+        if (currentIndex === -1) return prev;
+        
+        const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+        
+        if (newIndex < 0 || newIndex >= questions.length) return prev;
+        
+        // Swap questions
+        [questions[currentIndex], questions[newIndex]] = [questions[newIndex], questions[currentIndex]];
+        
+        return {
+          ...prev,
+          questions
+        };
+      });
+    }
+  };
+
   const saveSurvey = async () => {
     if (!survey) return;
 
@@ -132,9 +200,15 @@ const EditSurvey: React.FC = () => {
         num_questions: survey.questions.length
       });
 
-      // Update each question
+      // Process each question
       for (const question of survey.questions) {
-        await saveQuestion(question);
+        if (question.isNew) {
+          // Create new question
+          await createQuestion(question);
+        } else {
+          // Update existing question
+          await saveQuestion(question);
+        }
       }
 
       // Navigate back to surveys page
@@ -147,16 +221,75 @@ const EditSurvey: React.FC = () => {
     }
   };
 
+  // 🔥 UPDATED: Save Question Function with better error handling
   const saveQuestion = async (question: Question) => {
     try {
-      // Use the correct endpoint for updating questions
-      await axios.put(`${API_BASE_URL}/question/${question.question_id}`, {
+      console.log('Updating existing question:', {
+        question_id: question.question_id,
+        question_text: question.question,
+        options: question.options
+      });
+
+      const response = await axios.put(`${API_BASE_URL}/question/${question.question_id}`, {
         question_text: question.question,
         options: question.type === 'MCQ' ? question.options : undefined
       });
-    } catch (error) {
-      console.error('Error updating question:', error);
-      throw error;
+
+      console.log('✅ Question updated successfully:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Error updating question:', error);
+      
+      // Provide more specific error messages
+      if (error.response?.status === 404) {
+        throw new Error(`Question not found or update endpoint missing: ${question.question_id}`);
+      } else if (error.response?.status === 400) {
+        throw new Error(`Invalid question data: ${error.response.data?.error || error.message}`);
+      } else {
+        throw new Error(`Failed to update question: ${error.response?.data?.error || error.message}`);
+      }
+    }
+  };
+
+  // 🔥 UPDATED: Create Question Function with better error handling
+  const createQuestion = async (question: Question) => {
+    try {
+      console.log('Creating new question:', {
+        survey_id: surveyId,
+        question_text: question.question,
+        question_type: question.type,
+        options: question.options
+      });
+
+      const response = await axios.post(`${API_BASE_URL}/question`, {
+        survey_id: surveyId,
+        question_text: question.question,
+        question_type: question.type,
+        options: question.type === 'MCQ' ? question.options : undefined
+      });
+
+      console.log('✅ Question created successfully:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Error creating question:', error);
+      console.error('Request details:', {
+        url: `${API_BASE_URL}/question`,
+        data: {
+          survey_id: surveyId,
+          question_text: question.question,
+          question_type: question.type,
+          options: question.type === 'MCQ' ? question.options : undefined
+        }
+      });
+      
+      // Provide more specific error messages
+      if (error.response?.status === 404) {
+        throw new Error('Question creation endpoint not found. Please check if the backend is running and has the latest endpoints.');
+      } else if (error.response?.status === 400) {
+        throw new Error(`Invalid question data: ${error.response.data?.error || error.message}`);
+      } else {
+        throw new Error(`Failed to create question: ${error.response?.data?.error || error.message}`);
+      }
     }
   };
 
@@ -334,26 +467,89 @@ const EditSurvey: React.FC = () => {
             </div>
           </div>
 
+          {/* 🔥 NEW: Add Question Section */}
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl shadow-sm border border-blue-200 p-6 mb-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                  <PlusCircle className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Add New Question</h3>
+                  <p className="text-gray-600 text-sm">Choose a question type to add to your survey</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => addQuestion('MCQ')}
+                  className="flex items-center space-x-2 bg-white text-blue-600 px-4 py-3 rounded-xl font-medium hover:bg-blue-50 hover:text-blue-700 transition-all duration-200 shadow-sm hover:shadow-md border border-blue-200"
+                >
+                  <List className="w-4 h-4" />
+                  <span>Multiple Choice</span>
+                </button>
+                <button
+                  onClick={() => addQuestion('TEXT')}
+                  className="flex items-center space-x-2 bg-white text-purple-600 px-4 py-3 rounded-xl font-medium hover:bg-purple-50 hover:text-purple-700 transition-all duration-200 shadow-sm hover:shadow-md border border-purple-200"
+                >
+                  <Type className="w-4 h-4" />
+                  <span>Text Answer</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Questions */}
           <div className="space-y-6">
             {survey.questions.map((question, index) => (
               <div 
-                key={question.question_id} 
+                key={question.question_id}
+                id={`question-${question.question_id}`}
                 className="group bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 overflow-hidden"
               >
                 {/* Question Header */}
                 <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-8 py-6 border-b border-gray-200">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-2 text-gray-400 cursor-grab hover:text-gray-600 transition-colors">
-                        <GripVertical className="w-4 h-4" />
+                      <div className="flex items-center space-x-2">
+                        {/* Move Up/Down buttons */}
+                        <div className="flex flex-col space-y-1">
+                          <button
+                            onClick={() => moveQuestion(question.question_id, 'up')}
+                            disabled={index === 0}
+                            className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            title="Move up"
+                          >
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => moveQuestion(question.question_id, 'down')}
+                            disabled={index === survey.questions.length - 1}
+                            className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            title="Move down"
+                          >
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+                        </div>
+                        <div className="text-gray-400 cursor-grab hover:text-gray-600 transition-colors">
+                          <GripVertical className="w-4 h-4" />
+                        </div>
                       </div>
                       <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
                           {index + 1}
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900">
-                          Question {index + 1}
+                        <h3 className="text-xl font-bold text-gray-900 flex items-center space-x-2">
+                          <span>Question {index + 1}</span>
+                          {question.isNew && (
+                            <span className="bg-green-100 text-green-700 text-xs font-medium px-2 py-1 rounded-full">
+                              New
+                            </span>
+                          )}
                         </h3>
                       </div>
                     </div>
@@ -376,6 +572,17 @@ const EditSurvey: React.FC = () => {
                           )}
                         </div>
                       </div>
+                      
+                      {/* 🔥 NEW: Delete Question Button */}
+                      {survey.questions.length > 1 && (
+                        <button
+                          onClick={() => removeQuestion(question.question_id)}
+                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200"
+                          title="Delete question"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -475,7 +682,7 @@ const EditSurvey: React.FC = () => {
                 )}
               </button>
               <p className="text-center text-sm text-gray-500 mt-3">
-                Your changes will be saved automatically
+                Your changes will be saved automatically • {survey.questions.length} questions total
               </p>
             </div>
           </div>

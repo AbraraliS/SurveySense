@@ -22,9 +22,20 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 app.use(cors());
 app.use(express.json());
 
-// OpenRouter configuration
+// OpenRouter configuration - NOW DYNAMIC
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const DEEPSEEK_MODEL = 'deepseek/deepseek-chat-v3.1:free';
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'deepseek/deepseek-chat-v3.1:free';
+const DEFAULT_TEMPERATURE = parseFloat(process.env.DEFAULT_TEMPERATURE) || 0.7;
+const MAX_TOKENS = parseInt(process.env.DEEPSEEK_MAX_TOKENS) || 4000;
+const AI_TIMEOUT = parseInt(process.env.AI_TIMEOUT) || 30000;
+
+// Log configuration at startup
+console.log('🤖 AI Configuration:');
+console.log('Model:', OPENROUTER_MODEL);
+console.log('Temperature:', DEFAULT_TEMPERATURE);
+console.log('Max Tokens:', MAX_TOKENS);
+console.log('Timeout:', AI_TIMEOUT + 'ms');
+console.log('API Key configured:', !!OPENROUTER_API_KEY);
 
 // Test endpoint
 app.get('/api/test', (req, res) => {
@@ -1229,7 +1240,7 @@ function calculateModelMetrics(responses, processingTime) {
   };
 }
 
-// AI question generation function
+// AI question generation function - UPDATED TO USE DYNAMIC CONFIG
 async function generateQuestions(topic, audience, numQuestions) {
   if (!OPENROUTER_API_KEY) {
     console.log('No OpenRouter API key, using fallback questions');
@@ -1258,6 +1269,12 @@ async function generateQuestions(topic, audience, numQuestions) {
   Make questions relevant, engaging, and appropriate for the target audience.`;
 
   try {
+    console.log(`🎯 Using AI Model: ${OPENROUTER_MODEL}`);
+    console.log(`🌡️ Temperature: ${DEFAULT_TEMPERATURE}`);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT);
+
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -1267,40 +1284,66 @@ async function generateQuestions(topic, audience, numQuestions) {
         'X-Title': 'SurveySense'
       },
       body: JSON.stringify({
-        model: DEEPSEEK_MODEL,
+        model: OPENROUTER_MODEL,  // 🔥 DYNAMIC MODEL
         messages: [
           {
             role: 'user',
             content: prompt
           }
         ],
-        temperature: 0.7,
-        max_tokens: 2000
-      })
+        temperature: DEFAULT_TEMPERATURE,  // 🔥 DYNAMIC TEMPERATURE
+        max_tokens: MAX_TOKENS  // 🔥 DYNAMIC MAX TOKENS
+      }),
+      signal: controller.signal  // 🔥 DYNAMIC TIMEOUT
     });
 
+    clearTimeout(timeoutId);
+
     if (!response.ok) {
+      const errorData = await response.text();
+      console.error(`❌ OpenRouter API Error: ${response.status}`, errorData);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const data = await response.json();
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('❌ Invalid response structure:', data);
+      throw new Error('Invalid response structure from OpenRouter');
+    }
+
     const content = data.choices[0].message.content;
+    console.log(`✅ AI Response received (${content.length} chars)`);
     
     // Extract JSON from the response
     const jsonMatch = content.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
+      console.error('❌ No valid JSON found in response:', content);
       throw new Error('No valid JSON found in response');
     }
     
-    return JSON.parse(jsonMatch[0]);
+    const questions = JSON.parse(jsonMatch[0]);
+    console.log(`✅ Generated ${questions.length} questions using ${OPENROUTER_MODEL}`);
+    
+    return questions;
+    
   } catch (error) {
-    console.error('Error generating questions:', error);
+    if (error.name === 'AbortError') {
+      console.error(`⏰ Request timed out after ${AI_TIMEOUT}ms`);
+    } else {
+      console.error('❌ Error generating questions:', error.message);
+    }
+    
+    console.log('🔄 Falling back to default questions');
     return getFallbackQuestions(topic, numQuestions);
   }
 }
 
+// Enhanced fallback questions function
 function getFallbackQuestions(topic, numQuestions) {
-  const questions = [
+  console.log(`🔄 Generating ${numQuestions} fallback questions for topic: ${topic}`);
+  
+  const questionTemplates = [
     {
       question: `What is your overall opinion about ${topic}?`,
       type: 'MCQ',
@@ -1318,29 +1361,226 @@ function getFallbackQuestions(topic, numQuestions) {
     {
       question: `What improvements would you suggest for ${topic}?`,
       type: 'TEXT'
+    },
+    {
+      question: `How satisfied are you with ${topic}?`,
+      type: 'MCQ',
+      options: ['Very Satisfied', 'Satisfied', 'Neutral', 'Dissatisfied']
+    },
+    {
+      question: `What do you like most about ${topic}?`,
+      type: 'TEXT'
+    },
+    {
+      question: `How often do you use or interact with ${topic}?`,
+      type: 'MCQ',
+      options: ['Daily', 'Weekly', 'Monthly', 'Rarely']
+    },
+    {
+      question: `What challenges have you faced with ${topic}?`,
+      type: 'TEXT'
+    },
+    {
+      question: `How would you rate the quality of ${topic}?`,
+      type: 'MCQ',
+      options: ['Outstanding', 'Good', 'Average', 'Below Average']
+    },
+    {
+      question: `Any additional comments or feedback about ${topic}?`,
+      type: 'TEXT'
     }
   ];
   
-  return questions.slice(0, numQuestions);
+  return questionTemplates.slice(0, numQuestions);
 }
+
+// Add endpoint to check current AI configuration
+app.get('/api/ai-config', (req, res) => {
+  res.json({
+    model: OPENROUTER_MODEL,
+    temperature: DEFAULT_TEMPERATURE,
+    maxTokens: MAX_TOKENS,
+    timeout: AI_TIMEOUT,
+    apiKeyConfigured: !!OPENROUTER_API_KEY,
+    availableModels: [
+      'deepseek/deepseek-chat',
+      'anthropic/claude-3-5-sonnet-20241022',
+      'openai/gpt-4o',
+      'openai/gpt-4o-mini',
+      'meta-llama/llama-3.1-70b-instruct',
+      'google/gemini-pro-1.5',
+      'mistralai/mistral-7b-instruct',
+      'cohere/command-r-plus'
+    ]
+  });
+});
+
+// Add endpoint to update AI configuration (optional - for runtime changes)
+app.post('/api/ai-config', (req, res) => {
+  const { model, temperature, maxTokens } = req.body;
+  
+  // Note: These would only apply to current session, not persist
+  if (model) process.env.OPENROUTER_MODEL = model;
+  if (temperature !== undefined) process.env.DEFAULT_TEMPERATURE = temperature.toString();
+  if (maxTokens) process.env.DEEPSEEK_MAX_TOKENS = maxTokens.toString();
+  
+  res.json({
+    message: 'Configuration updated for current session',
+    currentConfig: {
+      model: process.env.OPENROUTER_MODEL,
+      temperature: parseFloat(process.env.DEFAULT_TEMPERATURE),
+      maxTokens: parseInt(process.env.DEEPSEEK_MAX_TOKENS)
+    }
+  });
+});
 
 // Log all available endpoints
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log('Supabase URL:', supabaseUrl);
-  console.log('Service key configured:', !!supabaseServiceKey);
-  console.log('OpenRouter API key configured:', !!OPENROUTER_API_KEY);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log('📊 Supabase URL:', supabaseUrl);
+  console.log('🔑 Service key configured:', !!supabaseServiceKey);
+  console.log('🤖 OpenRouter API key configured:', !!OPENROUTER_API_KEY);
+  console.log('🎯 Current AI Model:', OPENROUTER_MODEL);
   
-  console.log('\nAvailable endpoints:');
+  console.log('\n📋 Available endpoints:');
   console.log('GET    /api/test');
+  console.log('GET    /api/ai-config                    # 🆕 Check AI configuration');
+  console.log('POST   /api/ai-config                    # 🆕 Update AI configuration');
   console.log('GET    /api/surveys');
   console.log('POST   /api/create_survey');
   console.log('GET    /api/survey/:surveyId');
   console.log('PUT    /api/survey/:surveyId');
   console.log('DELETE /api/survey/:surveyId');
-  console.log('PUT    /api/question/:questionId');
+  console.log('POST   /api/question                     # 🆕 Create new question');
+  console.log('PUT    /api/question/:questionId         # Update existing question');
+  console.log('DELETE /api/question/:questionId         # 🆕 Delete question');
   console.log('POST   /api/submit_response');
   console.log('GET    /api/analysis/:surveyId');
-  console.log('GET    /api/surveys/:surveyId/results');  // <-- NEW ENDPOINT
-  console.log('GET    /api/surveys/:surveyId/ml-insights');  // <-- NEW ENDPOINT
+  console.log('GET    /api/surveys/:surveyId/results');
+  console.log('GET    /api/surveys/:surveyId/ml-insights');
+});
+
+// 🔥 MOVE THESE ENDPOINTS BEFORE app.listen()
+// Create Question Endpoint
+app.post('/api/question', async (req, res) => {
+  try {
+    const { survey_id, question_text, question_type, options } = req.body;
+    
+    console.log('📝 Creating new question:', {
+      survey_id,
+      question_text,
+      question_type,
+      options
+    });
+
+    // Validate required fields
+    if (!survey_id || !question_text || !question_type) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: survey_id, question_text, question_type' 
+      });
+    }
+
+    // Get the survey first to get the internal ID
+    const { data: survey, error: surveyError } = await supabase
+      .from('surveys')
+      .select('id')
+      .eq('survey_id', survey_id)
+      .single();
+
+    if (surveyError || !survey) {
+      return res.status(404).json({ error: 'Survey not found' });
+    }
+
+    // Create question data using internal survey ID
+    const questionData = {
+      survey_id: survey.id,  // Use internal ID, not external survey_id
+      question_text,
+      type: question_type,
+      order_index: 999  // Add to end by default
+    };
+
+    // Insert into database
+    const { data: question, error } = await supabase
+      .from('questions')
+      .insert(questionData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Supabase error creating question:', error);
+      throw error;
+    }
+
+    // If it's MCQ, add options
+    if (question_type === 'MCQ' && options && Array.isArray(options)) {
+      const optionsToInsert = options.map((option, index) => ({
+        question_id: question.id,
+        option_text: option,
+        option_index: index
+      }));
+
+      const { error: optionsError } = await supabase
+        .from('options')
+        .insert(optionsToInsert);
+
+      if (optionsError) {
+        console.error('Error inserting options:', optionsError);
+      }
+    }
+
+    console.log('✅ Question created successfully:', question.id);
+
+    res.status(201).json({
+      message: 'Question created successfully',
+      question: {
+        question_id: question.id,
+        question_text: question.question_text,
+        type: question.type,
+        options: question_type === 'MCQ' ? options : undefined
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error creating question:', error);
+    res.status(500).json({ 
+      error: 'Failed to create question',
+      details: error.message 
+    });
+  }
+});
+
+// Delete Question Endpoint
+app.delete('/api/question/:questionId', async (req, res) => {
+  try {
+    const { questionId } = req.params;
+    
+    console.log('🗑️ Deleting question:', questionId);
+
+    // Delete options first (if any)
+    await supabase
+      .from('options')
+      .delete()
+      .eq('question_id', questionId);
+
+    // Delete question
+    const { error } = await supabase
+      .from('questions')
+      .delete()
+      .eq('id', questionId);
+
+    if (error) {
+      console.error('❌ Supabase error deleting question:', error);
+      throw error;
+    }
+
+    console.log('✅ Question deleted successfully');
+
+    res.json({
+      message: 'Question deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ Error deleting question:', error);
+    res.status(500).json({ error: 'Failed to delete question', details: error.message });
+  }
 });
