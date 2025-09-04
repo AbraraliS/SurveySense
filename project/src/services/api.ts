@@ -1,7 +1,15 @@
 import axios from 'axios';
 
-// Get API base URL from environment, fallback to localhost:5000
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+// Get API base URL from environment with proper fallback
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://survey-sense-backend.onrender.com/api';
+
+console.log('🔗 API Base URL:', API_BASE_URL); // Debug log to see what URL is being used
+
+// Validate that we have a proper URL
+if (!API_BASE_URL || API_BASE_URL.includes('${') || API_BASE_URL === 'undefined') {
+  console.error('❌ Invalid API_BASE_URL:', API_BASE_URL);
+  console.error('Using fallback URL');
+}
 
 // Create axios instance
 const api = axios.create({
@@ -15,7 +23,7 @@ const api = axios.create({
 // Add request interceptor for debugging
 api.interceptors.request.use(
   (config) => {
-    console.log('API Request:', config.method?.toUpperCase(), config.url);
+    console.log('API Request:', config.method?.toUpperCase(), (config.baseURL ?? '') + config.url);
     console.log('Request data:', config.data);
     return config;
   },
@@ -37,6 +45,7 @@ api.interceptors.response.use(
       code: error.code,
       status: error.response?.status,
       url: error.config?.url,
+      fullURL: error.config?.baseURL + error.config?.url,
       data: error.response?.data
     });
     return Promise.reject(error);
