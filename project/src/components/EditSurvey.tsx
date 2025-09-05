@@ -12,7 +12,7 @@ interface Question {
   question: string;
   type: 'MCQ' | 'TEXT';
   options?: string[];
-  isNew?: boolean; // Add flag for new questions
+  isNew?: boolean;
 }
 
 interface SurveyData {
@@ -42,7 +42,6 @@ const EditSurvey: React.FC = () => {
       const response = await getSurvey(surveyId!);
       setSurvey(response.data);
     } catch (error) {
-      
       setError('Failed to load survey');
     } finally {
       setLoading(false);
@@ -119,7 +118,6 @@ const EditSurvey: React.FC = () => {
     }
   };
 
-  // 🔥 NEW: Add Question Functionality
   const addQuestion = (type: 'MCQ' | 'TEXT' = 'MCQ') => {
     if (survey) {
       const newQuestion: Question = {
@@ -138,7 +136,6 @@ const EditSurvey: React.FC = () => {
         };
       });
 
-      // Scroll to new question after a brief delay
       setTimeout(() => {
         const element = document.getElementById(`question-${newQuestion.question_id}`);
         if (element) {
@@ -148,7 +145,6 @@ const EditSurvey: React.FC = () => {
     }
   };
 
-  // 🔥 NEW: Remove Question Functionality
   const removeQuestion = (questionId: string) => {
     if (survey && survey.questions.length > 1) {
       setSurvey(prev => {
@@ -161,7 +157,6 @@ const EditSurvey: React.FC = () => {
     }
   };
 
-  // 🔥 NEW: Move Question Up/Down
   const moveQuestion = (questionId: string, direction: 'up' | 'down') => {
     if (survey) {
       setSurvey(prev => {
@@ -175,7 +170,6 @@ const EditSurvey: React.FC = () => {
         
         if (newIndex < 0 || newIndex >= questions.length) return prev;
         
-        // Swap questions
         [questions[currentIndex], questions[newIndex]] = [questions[newIndex], questions[currentIndex]];
         
         return {
@@ -193,54 +187,37 @@ const EditSurvey: React.FC = () => {
       setSaving(true);
       setError('');
 
-      // Update survey basic info
       await updateSurvey(surveyId!, {
         topic: survey.topic,
         audience: survey.audience,
         num_questions: survey.questions.length
       });
 
-      // Process each question
       for (const question of survey.questions) {
         if (question.isNew) {
-          // Create new question
           await createQuestion(question);
         } else {
-          // Update existing question
           await saveQuestion(question);
         }
       }
 
-      // Navigate back to surveys page
       navigate('/surveys');
     } catch (error) {
-      
       setError('Failed to save survey');
     } finally {
       setSaving(false);
     }
   };
 
-  // 🔥 UPDATED: Save Question Function with better error handling
   const saveQuestion = async (question: Question) => {
     try {
-      console.log('Updating existing question:', {
-        question_id: question.question_id,
-        question_text: question.question,
-        options: question.options
-      });
-
       const response = await axios.put(`${API_BASE_URL}/question/${question.question_id}`, {
         question_text: question.question,
         options: question.type === 'MCQ' ? question.options : undefined
       });
 
-      
       return response.data;
     } catch (error: any) {
-      
-      
-      // Provide more specific error messages
       if (error.response?.status === 404) {
         throw new Error(`Question not found or update endpoint missing: ${question.question_id}`);
       } else if (error.response?.status === 400) {
@@ -251,16 +228,8 @@ const EditSurvey: React.FC = () => {
     }
   };
 
-  // 🔥 UPDATED: Create Question Function with better error handling
   const createQuestion = async (question: Question) => {
     try {
-      console.log('Creating new question:', {
-        survey_id: surveyId,
-        question_text: question.question,
-        question_type: question.type,
-        options: question.options
-      });
-
       const response = await axios.post(`${API_BASE_URL}/question`, {
         survey_id: surveyId,
         question_text: question.question,
@@ -268,21 +237,8 @@ const EditSurvey: React.FC = () => {
         options: question.type === 'MCQ' ? question.options : undefined
       });
 
-      
       return response.data;
     } catch (error: any) {
-      
-      console.error('Request details:', {
-        url: `${API_BASE_URL}/question`,
-        data: {
-          survey_id: surveyId,
-          question_text: question.question,
-          question_type: question.type,
-          options: question.type === 'MCQ' ? question.options : undefined
-        }
-      });
-      
-      // Provide more specific error messages
       if (error.response?.status === 404) {
         throw new Error('Question creation endpoint not found. Please check if the backend is running and has the latest endpoints.');
       } else if (error.response?.status === 400) {
@@ -296,17 +252,17 @@ const EditSurvey: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
           <div className="flex items-center justify-center min-h-96">
             <div className="text-center">
               <div className="relative">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-blue-600" />
                 </div>
-                <div className="absolute inset-0 w-16 h-16 border-4 border-blue-200 rounded-full animate-pulse mx-auto"></div>
+                <div className="absolute inset-0 w-12 h-12 sm:w-16 sm:h-16 border-4 border-blue-200 rounded-full animate-pulse mx-auto"></div>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading Survey</h3>
-              <p className="text-gray-600">Please wait while we fetch your survey details...</p>
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Loading Survey</h3>
+              <p className="text-gray-600 text-sm sm:text-base">Please wait while we fetch your survey details...</p>
             </div>
           </div>
         </div>
@@ -317,26 +273,26 @@ const EditSurvey: React.FC = () => {
   if (error && !survey) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
           <div className="max-w-md mx-auto">
-            <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 text-center">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Something went wrong</h3>
-              <p className="text-red-600 mb-6">{error}</p>
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Something went wrong</h3>
+              <p className="text-red-600 mb-6 text-sm sm:text-base">{error}</p>
               <div className="space-y-3">
                 <button
                   onClick={fetchSurvey}
-                  className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  className="w-full bg-blue-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base"
                 >
                   Try Again
                 </button>
                 <button
                   onClick={() => navigate('/surveys')}
-                  className="w-full bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                  className="w-full bg-gray-100 text-gray-700 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm sm:text-base"
                 >
                   Back to Surveys
                 </button>
@@ -351,19 +307,19 @@ const EditSurvey: React.FC = () => {
   if (!survey) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
           <div className="max-w-md mx-auto">
-            <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 text-center">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.5-1.006-6-2.709M15 11V7a3 3 0 00-3-3H8a3 3 0 00-3 3v4.582m12-1.582V11a3 3 0 00-3-3H8a3 3 0 00-3 3v.582" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Survey Not Found</h3>
-              <p className="text-gray-600 mb-6">The survey you're looking for doesn't exist or has been removed.</p>
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Survey Not Found</h3>
+              <p className="text-gray-600 mb-6 text-sm sm:text-base">The survey you're looking for doesn't exist or has been removed.</p>
               <button
                 onClick={() => navigate('/surveys')}
-                className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="w-full bg-blue-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base"
               >
                 Back to Surveys
               </button>
@@ -376,41 +332,41 @@ const EditSurvey: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-5xl mx-auto">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="max-w-4xl xl:max-w-5xl mx-auto">
           {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center space-x-4 mb-6">
+          <div className="mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 mb-4 sm:mb-6">
               <button
                 onClick={() => navigate('/surveys')}
-                className="group p-3 text-gray-400 hover:text-gray-600 hover:bg-white rounded-xl transition-all duration-200 shadow-sm hover:shadow-md"
+                className="group p-2 sm:p-3 text-gray-400 hover:text-gray-600 hover:bg-white rounded-xl transition-all duration-200 shadow-sm hover:shadow-md self-start"
               >
-                <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 group-hover:-translate-x-0.5 transition-transform" />
               </button>
-              <div className="flex-1">
-                <h1 className="text-4xl font-bold text-gray-900 mb-2">Edit Survey</h1>
-                <p className="text-gray-600 text-lg">Customize your survey to perfection</p>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-1 sm:mb-2">Edit Survey</h1>
+                <p className="text-gray-600 text-sm sm:text-base lg:text-lg">Customize your survey to perfection</p>
               </div>
-              <div className="hidden md:flex items-center space-x-2 bg-white rounded-lg px-4 py-2 shadow-sm">
+              <div className="hidden md:flex items-center space-x-2 bg-white rounded-lg px-3 sm:px-4 py-2 shadow-sm">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span className="text-sm text-gray-600">Auto-saved</span>
+                <span className="text-xs sm:text-sm text-gray-600">Auto-saved</span>
               </div>
             </div>
 
             {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start space-x-3 animate-in slide-in-from-top-2 duration-300">
-                <div className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 animate-in slide-in-from-top-2 duration-300">
+                <div className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
                   <svg className="w-3 h-3 text-red-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <div>
-                  <h4 className="font-medium text-red-800">Error</h4>
+                <div className="flex-1">
+                  <h4 className="font-medium text-red-800 text-sm sm:text-base">Error</h4>
                   <p className="text-red-700 text-sm">{error}</p>
                 </div>
                 <button 
                   onClick={() => setError('')}
-                  className="ml-auto text-red-400 hover:text-red-600"
+                  className="text-red-400 hover:text-red-600 self-end sm:self-auto"
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -421,20 +377,20 @@ const EditSurvey: React.FC = () => {
           </div>
 
           {/* Survey Details */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-8 hover:shadow-md transition-shadow duration-300">
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <Edit3 className="w-5 h-5 text-white" />
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 hover:shadow-md transition-shadow duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-3 mb-4 sm:mb-6">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <Edit3 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Survey Details</h2>
-                <p className="text-gray-600">Basic information about your survey</p>
+                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">Survey Details</h2>
+                <p className="text-gray-600 text-sm sm:text-base">Basic information about your survey</p>
               </div>
             </div>
             
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <div className="group">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                <label className="block text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
                   Survey Topic
                 </label>
                 <div className="relative">
@@ -442,7 +398,7 @@ const EditSurvey: React.FC = () => {
                     type="text"
                     value={survey.topic}
                     onChange={(e) => handleSurveyChange('topic', e.target.value)}
-                    className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 group-hover:border-gray-400 bg-gray-50 focus:bg-white"
+                    className="w-full px-3 sm:px-4 py-3 sm:py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 group-hover:border-gray-400 bg-gray-50 focus:bg-white text-sm sm:text-base"
                     placeholder="What's your survey about?"
                   />
                   <div className="absolute inset-0 rounded-xl ring-2 ring-blue-500 opacity-0 group-focus-within:opacity-20 transition-opacity duration-200 pointer-events-none"></div>
@@ -450,7 +406,7 @@ const EditSurvey: React.FC = () => {
               </div>
               
               <div className="group">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                <label className="block text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
                   Target Audience
                 </label>
                 <div className="relative">
@@ -458,7 +414,7 @@ const EditSurvey: React.FC = () => {
                     type="text"
                     value={survey.audience}
                     onChange={(e) => handleSurveyChange('audience', e.target.value)}
-                    className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 group-hover:border-gray-400 bg-gray-50 focus:bg-white"
+                    className="w-full px-3 sm:px-4 py-3 sm:py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 group-hover:border-gray-400 bg-gray-50 focus:bg-white text-sm sm:text-base"
                     placeholder="Who should take this survey?"
                   />
                   <div className="absolute inset-0 rounded-xl ring-2 ring-blue-500 opacity-0 group-focus-within:opacity-20 transition-opacity duration-200 pointer-events-none"></div>
@@ -467,30 +423,30 @@ const EditSurvey: React.FC = () => {
             </div>
           </div>
 
-          {/* 🔥 NEW: Add Question Section */}
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl shadow-sm border border-blue-200 p-6 mb-8">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                  <PlusCircle className="w-5 h-5 text-white" />
+          {/* Add Question Section */}
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl sm:rounded-2xl shadow-sm border border-blue-200 p-4 sm:p-6 mb-6 sm:mb-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+              <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                  <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">Add New Question</h3>
-                  <p className="text-gray-600 text-sm">Choose a question type to add to your survey</p>
+                  <h3 className="text-base sm:text-lg font-bold text-gray-900">Add New Question</h3>
+                  <p className="text-gray-600 text-xs sm:text-sm">Choose a question type to add to your survey</p>
                 </div>
               </div>
               
-              <div className="flex items-center space-x-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => addQuestion('MCQ')}
-                  className="flex items-center space-x-2 bg-white text-blue-600 px-4 py-3 rounded-xl font-medium hover:bg-blue-50 hover:text-blue-700 transition-all duration-200 shadow-sm hover:shadow-md border border-blue-200"
+                  className="flex items-center justify-center space-x-2 bg-white text-blue-600 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl font-medium hover:bg-blue-50 hover:text-blue-700 transition-all duration-200 shadow-sm hover:shadow-md border border-blue-200 text-sm sm:text-base"
                 >
                   <List className="w-4 h-4" />
                   <span>Multiple Choice</span>
                 </button>
                 <button
                   onClick={() => addQuestion('TEXT')}
-                  className="flex items-center space-x-2 bg-white text-purple-600 px-4 py-3 rounded-xl font-medium hover:bg-purple-50 hover:text-purple-700 transition-all duration-200 shadow-sm hover:shadow-md border border-purple-200"
+                  className="flex items-center justify-center space-x-2 bg-white text-purple-600 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl font-medium hover:bg-purple-50 hover:text-purple-700 transition-all duration-200 shadow-sm hover:shadow-md border border-purple-200 text-sm sm:text-base"
                 >
                   <Type className="w-4 h-4" />
                   <span>Text Answer</span>
@@ -500,20 +456,20 @@ const EditSurvey: React.FC = () => {
           </div>
 
           {/* Questions */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {survey.questions.map((question, index) => (
               <div 
                 key={question.question_id}
                 id={`question-${question.question_id}`}
-                className="group bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 overflow-hidden"
+                className="group bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 overflow-hidden"
               >
                 {/* Question Header */}
-                <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-8 py-6 border-b border-gray-200">
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b border-gray-200">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-2">
-                        {/* Move Up/Down buttons */}
-                        <div className="flex flex-col space-y-1">
+                    <div className="flex items-center space-x-2 sm:space-x-4">
+                      <div className="flex items-center space-x-1 sm:space-x-2">
+                        {/* Move buttons - hidden on mobile for space */}
+                        <div className="hidden sm:flex flex-col space-y-1">
                           <button
                             onClick={() => moveQuestion(question.question_id, 'up')}
                             disabled={index === 0}
@@ -535,18 +491,18 @@ const EditSurvey: React.FC = () => {
                             </svg>
                           </button>
                         </div>
-                        <div className="text-gray-400 cursor-grab hover:text-gray-600 transition-colors">
+                        <div className="hidden sm:block text-gray-400 cursor-grab hover:text-gray-600 transition-colors">
                           <GripVertical className="w-4 h-4" />
                         </div>
                       </div>
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                      <div className="flex items-center space-x-2 sm:space-x-3">
+                        <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-xs sm:text-sm">
                           {index + 1}
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 flex items-center space-x-2">
+                        <h3 className="text-sm sm:text-lg lg:text-xl font-bold text-gray-900 flex items-center space-x-2">
                           <span>Question {index + 1}</span>
                           {question.isNew && (
-                            <span className="bg-green-100 text-green-700 text-xs font-medium px-2 py-1 rounded-full">
+                            <span className="bg-green-100 text-green-700 text-xs font-medium px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
                               New
                             </span>
                           )}
@@ -554,33 +510,32 @@ const EditSurvey: React.FC = () => {
                       </div>
                     </div>
                     
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
                       <div className="relative">
                         <select
                           value={question.type}
                           onChange={(e) => handleQuestionChange(question.question_id, 'type', e.target.value)}
-                          className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 font-medium"
+                          className="appearance-none bg-white border border-gray-300 rounded-lg px-2 sm:px-4 py-1.5 sm:py-2 pr-6 sm:pr-8 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 font-medium text-xs sm:text-sm"
                         >
-                          <option value="MCQ">Multiple Choice</option>
-                          <option value="TEXT">Text Answer</option>
+                          <option value="MCQ">MCQ</option>
+                          <option value="TEXT">Text</option>
                         </select>
-                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                        <div className="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
                           {question.type === 'MCQ' ? (
-                            <List className="w-4 h-4 text-gray-400" />
+                            <List className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
                           ) : (
-                            <Type className="w-4 h-4 text-gray-400" />
+                            <Type className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
                           )}
                         </div>
                       </div>
                       
-                      {/* 🔥 NEW: Delete Question Button */}
                       {survey.questions.length > 1 && (
                         <button
                           onClick={() => removeQuestion(question.question_id)}
-                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200"
+                          className="p-1.5 sm:p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200"
                           title="Delete question"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
                       )}
                     </div>
@@ -588,16 +543,16 @@ const EditSurvey: React.FC = () => {
                 </div>
 
                 {/* Question Content */}
-                <div className="p-8">
-                  <div className="mb-6">
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                <div className="p-4 sm:p-6 lg:p-8">
+                  <div className="mb-4 sm:mb-6">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
                       Question Text
                     </label>
                     <div className="relative group">
                       <textarea
                         value={question.question}
                         onChange={(e) => handleQuestionChange(question.question_id, 'question', e.target.value)}
-                        className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none bg-gray-50 focus:bg-white group-hover:border-gray-400"
+                        className="w-full px-3 sm:px-4 py-3 sm:py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none bg-gray-50 focus:bg-white group-hover:border-gray-400 text-sm sm:text-base"
                         rows={3}
                         placeholder="What would you like to ask?"
                       />
@@ -607,7 +562,7 @@ const EditSurvey: React.FC = () => {
 
                   {question.type === 'MCQ' && (
                     <div>
-                      <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center justify-between mb-3 sm:mb-4">
                         <label className="block text-sm font-semibold text-gray-700">
                           Answer Options
                         </label>
@@ -616,10 +571,10 @@ const EditSurvey: React.FC = () => {
                         </span>
                       </div>
                       
-                      <div className="space-y-3">
+                      <div className="space-y-2 sm:space-y-3">
                         {question.options?.map((option, optionIndex) => (
-                          <div key={optionIndex} className="group/option flex items-center space-x-3">
-                            <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <div key={optionIndex} className="group/option flex items-center space-x-2 sm:space-x-3">
+                            <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
                               <span className="text-xs font-medium text-gray-600">
                                 {String.fromCharCode(65 + optionIndex)}
                               </span>
@@ -629,16 +584,16 @@ const EditSurvey: React.FC = () => {
                                 type="text"
                                 value={option}
                                 onChange={(e) => handleOptionChange(question.question_id, optionIndex, e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white group-hover/option:border-gray-400"
+                                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white group-hover/option:border-gray-400 text-sm sm:text-base"
                                 placeholder={`Option ${optionIndex + 1}`}
                               />
                             </div>
                             {(question.options?.length || 0) > 2 && (
                               <button
                                 onClick={() => removeOption(question.question_id, optionIndex)}
-                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200 opacity-0 group-hover/option:opacity-100"
+                                className="p-1.5 sm:p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200 opacity-0 group-hover/option:opacity-100"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                               </button>
                             )}
                           </div>
@@ -647,9 +602,9 @@ const EditSurvey: React.FC = () => {
                         {(question.options?.length || 0) < 6 && (
                           <button
                             onClick={() => addOption(question.question_id)}
-                            className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 font-medium py-2 px-3 rounded-lg hover:bg-blue-50 transition-all duration-200 group/add"
+                            className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 font-medium py-2 px-3 rounded-lg hover:bg-blue-50 transition-all duration-200 group/add text-sm sm:text-base"
                           >
-                            <Plus className="w-4 h-4 group-hover/add:scale-110 transition-transform" />
+                            <Plus className="w-3 h-3 sm:w-4 sm:h-4 group-hover/add:scale-110 transition-transform" />
                             <span>Add Option</span>
                           </button>
                         )}
@@ -662,26 +617,26 @@ const EditSurvey: React.FC = () => {
           </div>
 
           {/* Save Button */}
-          <div className="mt-12 sticky bottom-8">
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
+          <div className="mt-8 sm:mt-12 sticky bottom-4 sm:bottom-8">
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl border border-gray-200 p-4 sm:p-6">
               <button
                 onClick={saveSurvey}
                 disabled={saving}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-8 rounded-xl font-bold text-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-3 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 sm:py-4 px-6 sm:px-8 rounded-xl font-bold text-base sm:text-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 sm:space-x-3 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
                 {saving ? (
                   <>
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                    <span>Saving Changes...</span>
+                    <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" />
+                    <span>Saving...</span>
                   </>
                 ) : (
                   <>
-                    <Save className="w-6 h-6" />
+                    <Save className="w-5 h-5 sm:w-6 sm:h-6" />
                     <span>Save Changes</span>
                   </>
                 )}
               </button>
-              <p className="text-center text-sm text-gray-500 mt-3">
+              <p className="text-center text-xs sm:text-sm text-gray-500 mt-2 sm:mt-3">
                 Your changes will be saved automatically • {survey.questions.length} questions total
               </p>
             </div>
