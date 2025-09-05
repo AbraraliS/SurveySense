@@ -7,6 +7,7 @@ import YourSurveys from './components/YourSurveys';
 import EditSurvey from './components/EditSurvey';
 import TakeSurvey from './components/TakeSurvey';
 import SurveyResultsPage from './components/SurveyResultsPage';
+import Footer from './components/Footer';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
             <Route path="/survey/:surveyId/results" element={<SurveyResultsPage />} />
           </Routes>
         </main>
+        <Footer />
       </Router>
     </div>
   );
