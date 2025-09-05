@@ -4,7 +4,7 @@ const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = ss.env.PORT || 5000;
 
 // Supabase configuration
 const supabaseUrl = process.env.SUPABASE_URL;
