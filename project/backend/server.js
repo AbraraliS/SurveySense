@@ -11,9 +11,9 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('Missing Supabase configuration');
-  console.error('SUPABASE_URL:', supabaseUrl);
-  console.error('SUPABASE_SERVICE_ROLE_KEY:', !!supabaseServiceKey);
+  
+  
+  
   process.exit(1);
 }
 
@@ -30,12 +30,12 @@ const MAX_TOKENS = parseInt(process.env.DEEPSEEK_MAX_TOKENS) || 4000;
 const AI_TIMEOUT = parseInt(process.env.AI_TIMEOUT) || 30000;
 
 // Log configuration at startup
-console.log('🤖 AI Configuration:');
-console.log('Model:', OPENROUTER_MODEL);
-console.log('Temperature:', DEFAULT_TEMPERATURE);
-console.log('Max Tokens:', MAX_TOKENS);
-console.log('Timeout:', AI_TIMEOUT + 'ms');
-console.log('API Key configured:', !!OPENROUTER_API_KEY);
+
+
+
+
+
+
 
 // Test endpoint
 app.get('/api/test', (req, res) => {
@@ -45,7 +45,7 @@ app.get('/api/test', (req, res) => {
 // Get all surveys endpoint
 app.get('/api/surveys', async (req, res) => {
   try {
-    console.log('Fetching all surveys...');
+    
     
     const { data: surveys, error } = await supabase
       .from('surveys')
@@ -53,11 +53,11 @@ app.get('/api/surveys', async (req, res) => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching surveys:', error);
+      
       return res.status(500).json({ error: 'Failed to fetch surveys' });
     }
 
-    console.log('Found surveys:', surveys?.length || 0);
+    
 
     // Get question counts and response counts for each survey
     const surveysWithCounts = await Promise.all(
@@ -89,7 +89,7 @@ app.get('/api/surveys', async (req, res) => {
     res.json(surveysWithCounts);
 
   } catch (error) {
-    console.error('Error fetching surveys:', error);
+    
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -103,7 +103,7 @@ app.post('/api/create_survey', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    console.log('Creating survey:', { topic, audience, num_questions });
+    
 
     // Insert survey into Supabase FIRST
     const { data: survey, error: surveyError } = await supabase
@@ -117,11 +117,11 @@ app.post('/api/create_survey', async (req, res) => {
       .single();
 
     if (surveyError) {
-      console.error('Error inserting survey:', surveyError);
+      
       return res.status(500).json({ error: 'Failed to save survey' });
     }
 
-    console.log('Survey created in DB:', survey);
+    
 
     // Generate questions using AI
     const questionsData = await generateQuestions(topic, audience, num_questions);
@@ -140,10 +140,10 @@ app.post('/api/create_survey', async (req, res) => {
       .select();
 
     if (questionsError) {
-      console.error('Error inserting questions:', questionsError);
+      
       // Don't fail completely, survey is already saved
     } else {
-      console.log('Questions created:', questions.length);
+      
 
       // Insert options for MCQ questions
       for (let i = 0; i < questions.length; i++) {
@@ -162,7 +162,7 @@ app.post('/api/create_survey', async (req, res) => {
             .insert(optionsToInsert);
 
           if (optionsError) {
-            console.error('Error inserting options:', optionsError);
+            
           }
         }
       }
@@ -178,7 +178,7 @@ app.post('/api/create_survey', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error creating survey:', error);
+    
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -188,7 +188,7 @@ app.get('/api/survey/:surveyId', async (req, res) => {
   try {
     const { surveyId } = req.params;
 
-    console.log('Fetching survey:', surveyId);
+    
 
     // Get survey details
     const { data: survey, error: surveyError } = await supabase
@@ -198,11 +198,11 @@ app.get('/api/survey/:surveyId', async (req, res) => {
       .single();
 
     if (surveyError || !survey) {
-      console.error('Survey not found:', surveyError);
+      
       return res.status(404).json({ error: 'Survey not found' });
     }
 
-    console.log('Survey found:', survey);
+    
 
     // Get questions with options
     const { data: questions, error: questionsError } = await supabase
@@ -215,11 +215,11 @@ app.get('/api/survey/:surveyId', async (req, res) => {
       .order('order_index');
 
     if (questionsError) {
-      console.error('Error fetching questions:', questionsError);
+      
       return res.status(500).json({ error: 'Failed to fetch questions' });
     }
 
-    console.log('Questions found:', questions.length);
+    
 
     // Format questions
     const formattedQuestions = questions.map(q => ({
@@ -237,7 +237,7 @@ app.get('/api/survey/:surveyId', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching survey:', error);
+    
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -252,7 +252,7 @@ app.put('/api/survey/:surveyId', async (req, res) => {
       return res.status(400).json({ error: 'Topic and audience are required' });
     }
 
-    console.log('Updating survey:', surveyId, { topic, audience });
+    
 
     // Update survey in database
     const { data: survey, error: surveyError } = await supabase
@@ -263,11 +263,11 @@ app.put('/api/survey/:surveyId', async (req, res) => {
       .single();
 
     if (surveyError || !survey) {
-      console.error('Error updating survey:', surveyError);
+      
       return res.status(404).json({ error: 'Survey not found or failed to update' });
     }
 
-    console.log('Survey updated:', survey);
+    
 
     res.json({
       survey_id: survey.survey_id,
@@ -278,7 +278,7 @@ app.put('/api/survey/:surveyId', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error updating survey:', error);
+    
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -288,7 +288,7 @@ app.delete('/api/survey/:surveyId', async (req, res) => {
   try {
     const { surveyId } = req.params;
 
-    console.log('Deleting survey:', surveyId);
+    
 
     // Get survey first to get the internal ID
     const { data: survey, error: findError } = await supabase
@@ -298,7 +298,7 @@ app.delete('/api/survey/:surveyId', async (req, res) => {
       .single();
 
     if (findError || !survey) {
-      console.error('Survey not found:', findError);
+      
       return res.status(404).json({ error: 'Survey not found' });
     }
 
@@ -309,16 +309,16 @@ app.delete('/api/survey/:surveyId', async (req, res) => {
       .eq('survey_id', surveyId);
 
     if (deleteError) {
-      console.error('Error deleting survey:', deleteError);
+      
       return res.status(500).json({ error: 'Failed to delete survey' });
     }
 
-    console.log('Survey deleted successfully:', surveyId);
+    
 
     res.json({ message: 'Survey deleted successfully' });
 
   } catch (error) {
-    console.error('Error deleting survey:', error);
+    
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -333,7 +333,7 @@ app.put('/api/question/:questionId', async (req, res) => {
       return res.status(400).json({ error: 'Question text is required' });
     }
 
-    console.log('Updating question:', questionId, { question_text, options });
+    
 
     // Update question
     const { data: question, error: questionError } = await supabase
@@ -344,7 +344,7 @@ app.put('/api/question/:questionId', async (req, res) => {
       .single();
 
     if (questionError || !question) {
-      console.error('Error updating question:', questionError);
+      
       return res.status(404).json({ error: 'Question not found or failed to update' });
     }
 
@@ -357,7 +357,7 @@ app.put('/api/question/:questionId', async (req, res) => {
         .eq('question_id', questionId);
 
       if (deleteOptionsError) {
-        console.error('Error deleting old options:', deleteOptionsError);
+        
       }
 
       // Insert new options
@@ -372,7 +372,7 @@ app.put('/api/question/:questionId', async (req, res) => {
         .insert(optionsToInsert);
 
       if (insertOptionsError) {
-        console.error('Error inserting new options:', insertOptionsError);
+        
         return res.status(500).json({ error: 'Failed to update options' });
       }
     }
@@ -380,7 +380,7 @@ app.put('/api/question/:questionId', async (req, res) => {
     res.json({ message: 'Question updated successfully' });
 
   } catch (error) {
-    console.error('Error updating question:', error);
+    
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -390,7 +390,7 @@ app.post('/api/submit_response', async (req, res) => {
   try {
     const { survey_id, user_details, responses } = req.body;
 
-    console.log('Submitting response:', { survey_id, user_details, responses: responses?.length });
+    
 
     if (!survey_id || !user_details || !responses) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -416,14 +416,14 @@ app.post('/api/submit_response', async (req, res) => {
       .single();
 
     if (userError) {
-      console.error('Error inserting user details:', userError);
+      
       return res.status(500).json({ 
         error: 'Failed to save user details',
         details: userError.message 
       });
     }
 
-    console.log('User details saved:', userDetail);
+    
 
     // Insert responses
     const responsesToInsert = responses.map(response => ({
@@ -438,11 +438,11 @@ app.post('/api/submit_response', async (req, res) => {
       .insert(responsesToInsert);
 
     if (responsesError) {
-      console.error('Error inserting responses:', responsesError);
+      
       return res.status(500).json({ error: 'Failed to save responses' });
     }
 
-    console.log('Responses saved:', responsesToInsert.length);
+    
 
     res.json({ 
       message: 'Response submitted successfully',
@@ -450,7 +450,7 @@ app.post('/api/submit_response', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error submitting response:', error);
+    
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -460,7 +460,7 @@ app.get('/api/analysis/:surveyId', async (req, res) => {
   try {
     const { surveyId } = req.params;
 
-    console.log('Fetching analysis for survey:', surveyId);
+    
 
     // Get survey details
     const { data: survey, error: surveyError } = await supabase
@@ -551,7 +551,7 @@ app.get('/api/analysis/:surveyId', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error getting analysis:', error);
+    
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -561,7 +561,7 @@ app.get('/api/surveys/:surveyId/results', async (req, res) => {
   try {
     const { surveyId } = req.params;
 
-    console.log('Fetching survey results for:', surveyId);
+    
 
     // Get survey details
     const { data: survey, error: surveyError } = await supabase
@@ -571,7 +571,7 @@ app.get('/api/surveys/:surveyId/results', async (req, res) => {
       .single();
 
     if (surveyError || !survey) {
-      console.error('Survey not found:', surveyError);
+      
       return res.status(404).json({ error: 'Survey not found' });
     }
 
@@ -586,7 +586,7 @@ app.get('/api/surveys/:surveyId/results', async (req, res) => {
       .order('order_index');
 
     if (questionsError) {
-      console.error('Error fetching questions:', questionsError);
+      
       return res.status(500).json({ error: 'Failed to fetch questions' });
     }
 
@@ -598,7 +598,7 @@ app.get('/api/surveys/:surveyId/results', async (req, res) => {
       .order('submitted_at', { ascending: false });
 
     if (userDetailsError) {
-      console.error('Error fetching user details:', userDetailsError);
+      
       return res.status(500).json({ error: 'Failed to fetch user details' });
     }
 
@@ -609,7 +609,7 @@ app.get('/api/surveys/:surveyId/results', async (req, res) => {
       .eq('survey_id', surveyId);
 
     if (responsesError) {
-      console.error('Error fetching responses:', responsesError);
+      
       return res.status(500).json({ error: 'Failed to fetch responses' });
     }
 
@@ -687,7 +687,7 @@ app.get('/api/surveys/:surveyId/results', async (req, res) => {
     res.json(results);
 
   } catch (error) {
-    console.error('Error fetching survey results:', error);
+    
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -697,7 +697,7 @@ app.get('/api/surveys/:surveyId/ml-insights', async (req, res) => {
   try {
     const { surveyId } = req.params;
 
-    console.log('Fetching ML insights for survey:', surveyId);
+    
 
     // Get survey details
     const { data: survey, error: surveyError } = await supabase
@@ -707,7 +707,7 @@ app.get('/api/surveys/:surveyId/ml-insights', async (req, res) => {
       .single();
 
     if (surveyError || !survey) {
-      console.error('Survey not found:', surveyError);
+      
       return res.status(404).json({ error: 'Survey not found' });
     }
 
@@ -722,7 +722,7 @@ app.get('/api/surveys/:surveyId/ml-insights', async (req, res) => {
       .order('order_index');
 
     if (questionsError) {
-      console.error('Error fetching questions:', questionsError);
+      
       return res.status(500).json({ error: 'Failed to fetch questions' });
     }
 
@@ -734,7 +734,7 @@ app.get('/api/surveys/:surveyId/ml-insights', async (req, res) => {
       .order('submitted_at', { ascending: false });
 
     if (userDetailsError) {
-      console.error('Error fetching user details:', userDetailsError);
+      
       return res.status(500).json({ error: 'Failed to fetch user details' });
     }
 
@@ -745,7 +745,7 @@ app.get('/api/surveys/:surveyId/ml-insights', async (req, res) => {
       .eq('survey_id', surveyId);
 
     if (responsesError) {
-      console.error('Error fetching responses:', responsesError);
+      
       return res.status(500).json({ error: 'Failed to fetch responses' });
     }
 
@@ -778,12 +778,12 @@ app.get('/api/surveys/:surveyId/ml-insights', async (req, res) => {
     // Perform ML Analysis
     const mlInsights = await performMLAnalysis(questions, formattedResponses, userDetails);
 
-    console.log('ML insights generated successfully for survey:', surveyId);
+    
 
     res.json(mlInsights);
 
   } catch (error) {
-    console.error('Error generating ML insights:', error);
+    
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -1243,7 +1243,7 @@ function calculateModelMetrics(responses, processingTime) {
 // AI question generation function - UPDATED TO USE DYNAMIC CONFIG
 async function generateQuestions(topic, audience, numQuestions) {
   if (!OPENROUTER_API_KEY) {
-    console.log('No OpenRouter API key, using fallback questions');
+    
     return getFallbackQuestions(topic, numQuestions);
   }
 
@@ -1269,8 +1269,8 @@ async function generateQuestions(topic, audience, numQuestions) {
   Make questions relevant, engaging, and appropriate for the target audience.`;
 
   try {
-    console.log(`🎯 Using AI Model: ${OPENROUTER_MODEL}`);
-    console.log(`🌡️ Temperature: ${DEFAULT_TEMPERATURE}`);
+    
+    
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT);
@@ -1301,14 +1301,14 @@ async function generateQuestions(topic, audience, numQuestions) {
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error(`❌ OpenRouter API Error: ${response.status}`, errorData);
+      
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const data = await response.json();
     
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.error('❌ Invalid response structure:', data);
+      
       throw new Error('Invalid response structure from OpenRouter');
     }
 
@@ -1318,30 +1318,30 @@ async function generateQuestions(topic, audience, numQuestions) {
     // Extract JSON from the response
     const jsonMatch = content.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
-      console.error('❌ No valid JSON found in response:', content);
+      
       throw new Error('No valid JSON found in response');
     }
     
     const questions = JSON.parse(jsonMatch[0]);
-    console.log(`✅ Generated ${questions.length} questions using ${OPENROUTER_MODEL}`);
+    
     
     return questions;
     
   } catch (error) {
     if (error.name === 'AbortError') {
-      console.error(`⏰ Request timed out after ${AI_TIMEOUT}ms`);
+      
     } else {
-      console.error('❌ Error generating questions:', error.message);
+      
     }
     
-    console.log('🔄 Falling back to default questions');
+    
     return getFallbackQuestions(topic, numQuestions);
   }
 }
 
 // Enhanced fallback questions function
 function getFallbackQuestions(topic, numQuestions) {
-  console.log(`🔄 Generating ${numQuestions} fallback questions for topic: ${topic}`);
+  
   
   const questionTemplates = [
     {
@@ -1436,28 +1436,28 @@ app.post('/api/ai-config', (req, res) => {
 
 // Log all available endpoints
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log('📊 Supabase URL:', supabaseUrl);
-  console.log('🔑 Service key configured:', !!supabaseServiceKey);
-  console.log('🤖 OpenRouter API key configured:', !!OPENROUTER_API_KEY);
-  console.log('🎯 Current AI Model:', OPENROUTER_MODEL);
   
-  console.log('\n📋 Available endpoints:');
-  console.log('GET    /api/test');
-  console.log('GET    /api/ai-config                    # 🆕 Check AI configuration');
-  console.log('POST   /api/ai-config                    # 🆕 Update AI configuration');
-  console.log('GET    /api/surveys');
-  console.log('POST   /api/create_survey');
-  console.log('GET    /api/survey/:surveyId');
-  console.log('PUT    /api/survey/:surveyId');
-  console.log('DELETE /api/survey/:surveyId');
-  console.log('POST   /api/question                     # 🆕 Create new question');
-  console.log('PUT    /api/question/:questionId         # Update existing question');
-  console.log('DELETE /api/question/:questionId         # 🆕 Delete question');
-  console.log('POST   /api/submit_response');
-  console.log('GET    /api/analysis/:surveyId');
-  console.log('GET    /api/surveys/:surveyId/results');
-  console.log('GET    /api/surveys/:surveyId/ml-insights');
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 });
 
 // 🔥 MOVE THESE ENDPOINTS BEFORE app.listen()
@@ -1507,7 +1507,7 @@ app.post('/api/question', async (req, res) => {
       .single();
 
     if (error) {
-      console.error('❌ Supabase error creating question:', error);
+      
       throw error;
     }
 
@@ -1524,11 +1524,11 @@ app.post('/api/question', async (req, res) => {
         .insert(optionsToInsert);
 
       if (optionsError) {
-        console.error('Error inserting options:', optionsError);
+        
       }
     }
 
-    console.log('✅ Question created successfully:', question.id);
+    
 
     res.status(201).json({
       message: 'Question created successfully',
@@ -1541,7 +1541,7 @@ app.post('/api/question', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error creating question:', error);
+    
     res.status(500).json({ 
       error: 'Failed to create question',
       details: error.message 
@@ -1554,7 +1554,7 @@ app.delete('/api/question/:questionId', async (req, res) => {
   try {
     const { questionId } = req.params;
     
-    console.log('🗑️ Deleting question:', questionId);
+    
 
     // Delete options first (if any)
     await supabase
@@ -1569,18 +1569,18 @@ app.delete('/api/question/:questionId', async (req, res) => {
       .eq('id', questionId);
 
     if (error) {
-      console.error('❌ Supabase error deleting question:', error);
+      
       throw error;
     }
 
-    console.log('✅ Question deleted successfully');
+    
 
     res.json({
       message: 'Question deleted successfully'
     });
 
   } catch (error) {
-    console.error('❌ Error deleting question:', error);
+    
     res.status(500).json({ error: 'Failed to delete question', details: error.message });
   }
 });

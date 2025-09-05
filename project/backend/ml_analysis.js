@@ -129,7 +129,7 @@ async function analyzeResponses(surveyId, supabase) {
     return analysis;
 
   } catch (error) {
-    console.error('Analysis error:', error);
+    
     throw error;
   }
 }

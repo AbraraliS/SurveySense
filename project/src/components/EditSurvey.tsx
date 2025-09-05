@@ -42,7 +42,7 @@ const EditSurvey: React.FC = () => {
       const response = await getSurvey(surveyId!);
       setSurvey(response.data);
     } catch (error) {
-      console.error('Error fetching survey:', error);
+      
       setError('Failed to load survey');
     } finally {
       setLoading(false);
@@ -214,7 +214,7 @@ const EditSurvey: React.FC = () => {
       // Navigate back to surveys page
       navigate('/surveys');
     } catch (error) {
-      console.error('Error saving survey:', error);
+      
       setError('Failed to save survey');
     } finally {
       setSaving(false);
@@ -235,10 +235,10 @@ const EditSurvey: React.FC = () => {
         options: question.type === 'MCQ' ? question.options : undefined
       });
 
-      console.log('✅ Question updated successfully:', response.data);
+      
       return response.data;
     } catch (error: any) {
-      console.error('❌ Error updating question:', error);
+      
       
       // Provide more specific error messages
       if (error.response?.status === 404) {
@@ -268,10 +268,10 @@ const EditSurvey: React.FC = () => {
         options: question.type === 'MCQ' ? question.options : undefined
       });
 
-      console.log('✅ Question created successfully:', response.data);
+      
       return response.data;
     } catch (error: any) {
-      console.error('❌ Error creating question:', error);
+      
       console.error('Request details:', {
         url: `${API_BASE_URL}/question`,
         data: {

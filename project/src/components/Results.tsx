@@ -86,7 +86,7 @@ export const getSurveyResults = async (surveyId: string): Promise<{ data: Survey
     const response = await axios.get(`${API_BASE_URL}/surveys/${surveyId}/results`);
     return response.data;
   } catch (error) {
-    console.error('Error fetching survey results:', error);
+    
     throw error;
   }
 };
@@ -109,7 +109,7 @@ export default function Results() {
       const response = await getSurveyAnalysis(surveyId!);
       setAnalysis(response.data);
     } catch (err: any) {
-      console.error('Error fetching analysis:', err);
+      
       setError('Failed to load analysis data');
     } finally {
       setLoading(false);
@@ -127,7 +127,7 @@ export default function Results() {
         setCopied(false);
       }, 2000);
     } catch (error) {
-      console.error('Failed to copy link:', error);
+      
       fallbackCopyTextToClipboard(`${window.location.origin}/survey/${surveyId}`);
     }
   };
@@ -147,7 +147,7 @@ export default function Results() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Fallback: Could not copy text: ', err);
+      
     }
     
     document.body.removeChild(textArea);
@@ -168,7 +168,7 @@ export default function Results() {
         await copySurveyLink();
       }
     } catch (error) {
-      console.error('Error sharing:', error);
+      
       await copySurveyLink();
     }
   };

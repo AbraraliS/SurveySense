@@ -53,12 +53,12 @@ const SurveyResultsPage: React.FC = () => {
     try {
       setLoading(true);
       setError('');
-      console.log('Fetching results for survey:', surveyId);
+      
       const response = await getSurveyResults(surveyId!);
-      console.log('Results received:', response);
+      
       setResults(response.data);
     } catch (error) {
-      console.error('Error fetching results:', error);
+      
       setError('Failed to load survey results');
     } finally {
       setLoading(false);
@@ -82,7 +82,7 @@ const SurveyResultsPage: React.FC = () => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error('Failed to copy link:', error);
+      
     }
   };
 

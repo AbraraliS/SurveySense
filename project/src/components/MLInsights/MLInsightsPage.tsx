@@ -40,14 +40,14 @@ const MLInsightsPage: React.FC<MLInsightsPageProps> = ({ results }) => {
     try {
       setIsProcessing(true);
       setError('');
-      console.log('🧠 Fetching ML insights for survey:', results.survey.survey_id);
+      
       
       const response = await getMLInsights(results.survey.survey_id);
-      console.log('✅ ML insights received:', response.data);
+      
       
       setMlInsights(response.data);
     } catch (error) {
-      console.error('❌ Error fetching ML insights:', error);
+      
       setError('Failed to load ML insights. Please try again.');
     } finally {
       setIsProcessing(false);

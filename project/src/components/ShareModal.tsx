@@ -48,7 +48,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ survey, isOpen, onClose }) => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error('Failed to copy:', error);
+      
     }
   };
 
@@ -97,7 +97,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ survey, isOpen, onClose }) => {
           url: surveyUrl,
         });
       } catch (error) {
-        console.error('Error sharing:', error);
+        
       }
     } else {
       copyToClipboard();

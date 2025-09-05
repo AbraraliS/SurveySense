@@ -59,11 +59,11 @@ const YourSurveys: React.FC = () => {
       } else if (response && Array.isArray(response.data)) {
         setSurveys(response.data);
       } else {
-        console.warn('Unexpected response format:', response);
+        
         setSurveys([]);
       }
     } catch (error) {
-      console.error('Error fetching surveys:', error);
+      
       setError('Failed to load surveys');
       setSurveys([]);
     } finally {
@@ -80,7 +80,7 @@ const YourSurveys: React.FC = () => {
       await api.delete(`/survey/${surveyId}`);
       setSurveys(prev => prev.filter(survey => survey.survey_id !== surveyId));
     } catch (error) {
-      console.error('Error deleting survey:', error);
+      
       setError('Failed to delete survey');
     }
   };

@@ -50,17 +50,17 @@ export default function CreateSurvey() {
         num_questions: parseInt(formData.num_questions.toString()) // Ensure it's a number
       };
 
-      console.log('Creating survey with data:', surveyData); // Debug log
+      // Debug log
 
       const response = await createSurvey(surveyData);
       
-      console.log('Survey created successfully:', response); // Debug log
+      // Debug log
       
       // Redirect to surveys list instead of taking the survey
       navigate('/surveys');
       
     } catch (error: any) {
-      console.error('Error creating survey:', error);
+      
       
       // More specific error handling
       if (error.response?.status === 400) {

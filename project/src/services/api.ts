@@ -1,20 +1,20 @@
 import axios from 'axios';
 
 // Debug environment variables
-console.log('🔍 Environment Variables Debug:');
-console.log('VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
-console.log('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
-console.log('All env vars:', import.meta.env);
+
+
+
+
 
 // Get API base URL with better fallback handling
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://survey-sense-backend.onrender.com/api';
 
-console.log('🔗 Final API Base URL:', API_BASE_URL);
+
 
 // Validate URL format
 if (API_BASE_URL.includes('${') || API_BASE_URL === 'undefined' || !API_BASE_URL.startsWith('http')) {
-  console.error('❌ Invalid API_BASE_URL detected:', API_BASE_URL);
-  console.error('Using hardcoded fallback URL');
+  
+  
 }
 
 const api = axios.create({
@@ -33,7 +33,7 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error('❌ Request interceptor error:', error);
+    
     return Promise.reject(error);
   }
 );
@@ -41,7 +41,7 @@ api.interceptors.request.use(
 // Enhanced response interceptor
 api.interceptors.response.use(
   (response) => {
-    console.log('✅ API Response:', response.status, response.config.url);
+    
     return response;
   },
   (error) => {
@@ -210,7 +210,7 @@ export const createSurvey = async (surveyData: CreateSurveyRequest) => {
     num_questions: surveyData.num_questions
   };
   
-  console.log('Sending survey data:', formattedData); // Debug log
+  // Debug log
   
   const response = await api.post('/create_survey', formattedData);
   return response.data;

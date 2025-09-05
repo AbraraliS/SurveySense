@@ -69,14 +69,14 @@ Make sure to return exactly ${questionCount} questions total (${mcq} multiple ch
     });
 
     const content = completion.choices[0].message.content;
-    console.log('Raw AI response:', content);
+    
     
     // Try to parse the JSON response
     let questions;
     try {
       questions = JSON.parse(content);
     } catch (parseError) {
-      console.error('JSON parse error:', parseError);
+      
       // Fallback: try to extract JSON from the response
       const jsonMatch = content.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
@@ -119,7 +119,7 @@ Make sure to return exactly ${questionCount} questions total (${mcq} multiple ch
     return questions;
 
   } catch (error) {
-    console.error('Error generating survey questions:', error);
+    
     
     // Fallback questions if AI fails - questionCounts is now defined above
     const { mcq, text } = questionCounts[questionCount] || { mcq: 4, text: 1 };
@@ -146,7 +146,7 @@ Make sure to return exactly ${questionCount} questions total (${mcq} multiple ch
       });
     }
 
-    console.log(`Returning ${fallbackQuestions.length} fallback questions`);
+    
     return fallbackQuestions;
   }
 }

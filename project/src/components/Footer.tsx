@@ -62,12 +62,11 @@ const Footer: React.FC = () => {
     }
   ];
 
+  // 🔥 UPDATED: Removed Analytics and ML Insights
   const quickLinks = [
     { name: 'Home', path: '/' },
     { name: 'Create Survey', path: '/create' },
-    { name: 'My Surveys', path: '/surveys' },
-    { name: 'Analytics', path: '/analytics' },
-    { name: 'ML Insights', path: '/ml-insights' }
+    { name: 'My Surveys', path: '/surveys' }
   ];
 
   return (
@@ -99,14 +98,14 @@ const Footer: React.FC = () => {
             {/* Contact - Horizontal Layout */}
             <div className="flex flex-wrap gap-4 text-sm">
               <a 
-                href="mailto:contact@surveysense.com" 
+                href="mailto:abrarali.sunasara28@gmail.com" 
                 className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors"
               >
                 <Mail className="w-4 h-4" />
                 <span>abrarali.sunasara28@gmail.com</span>
               </a>
               <a 
-                href="tel:+1234567890" 
+                href="tel:+916353346123" 
                 className="flex items-center space-x-2 text-gray-600 hover:text-green-600 transition-colors"
               >
                 <Phone className="w-4 h-4" />

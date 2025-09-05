@@ -22,7 +22,7 @@ const PredictiveAnalytics: React.FC<PredictiveAnalyticsProps> = ({ results }) =>
       const response = await getMLInsights(results.survey.survey_id);
       setMlInsights(response.data);
     } catch (error) {
-      console.error('Error fetching ML insights:', error);
+      
       setError('Failed to load predictive analytics data');
     } finally {
       setLoading(false);

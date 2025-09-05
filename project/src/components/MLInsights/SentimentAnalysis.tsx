@@ -22,7 +22,7 @@ const SentimentAnalysis: React.FC<SentimentAnalysisProps> = ({ results }) => {
       const response = await getMLInsights(results.survey.survey_id);
       setMlInsights(response.data);
     } catch (error) {
-      console.error('Error fetching ML insights:', error);
+      
       setError('Failed to load sentiment analysis data');
     } finally {
       setLoading(false);

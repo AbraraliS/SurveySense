@@ -77,7 +77,7 @@ const TakeSurvey: React.FC = () => {
       const response = await getSurvey(surveyId!);
       setSurvey(response.data);
     } catch (error) {
-      console.error('Error fetching survey:', error);
+      
       setError('Failed to load survey');
     } finally {
       setLoading(false);
@@ -160,7 +160,7 @@ const TakeSurvey: React.FC = () => {
       setSubmissionTime(endTime);
       setCurrentStep('submitted');
     } catch (error) {
-      console.error('Error submitting response:', error);
+      
       setError('Failed to submit survey. Please try again.');
     } finally {
       setSubmitting(false);
