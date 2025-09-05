@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, BarChart3, Plus, Home, List, Brain, Settings } from 'lucide-react';
+import { Menu, X, BarChart3, Plus, Home, List, Settings } from 'lucide-react';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -53,6 +53,7 @@ const Header: React.FC = () => {
     return location.pathname === path;
   };
 
+  // 🔥 UPDATED: Removed Analytics and ML Insights
   const navItems = [
     {
       path: '/',
@@ -71,18 +72,6 @@ const Header: React.FC = () => {
       label: 'My Surveys',
       icon: List,
       description: 'Manage your surveys'
-    },
-    {
-      path: '/analytics',
-      label: 'Analytics',
-      icon: BarChart3,
-      description: 'View insights'
-    },
-    {
-      path: '/ml-insights',
-      label: 'ML Insights',
-      icon: Brain,
-      description: 'AI-powered analytics'
     }
   ];
 
@@ -111,7 +100,6 @@ const Header: React.FC = () => {
                   </div>
                   <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
                 </div>
-                {/* 🔥 CHANGED: Now shows on all screen sizes, responsive text sizing */}
                 <div className="block">
                   <h1 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                     SurveySense
@@ -225,7 +213,7 @@ const Header: React.FC = () => {
                 <BarChart3 className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h2 className="font-bold text-gray-900">Welcome User</h2>
+                <h2 className="font-bold text-gray-900">SurveySense</h2>
                 <p className="text-xs text-gray-500">Navigation Menu</p>
               </div>
             </div>
@@ -289,7 +277,7 @@ const Header: React.FC = () => {
           {/* Footer */}
           <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-100 bg-gray-50">
             <p className="text-xs text-gray-500 text-center">
-              © 2025 SurveySense • AI-Powered Analytics
+              © 2024 SurveySense • AI-Powered Analytics
             </p>
           </div>
         </div>
