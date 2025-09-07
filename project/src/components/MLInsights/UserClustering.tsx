@@ -22,7 +22,7 @@ const UserClustering: React.FC<UserClusteringProps> = ({ results }) => {
       setLoading(true);
       setError('');
       
-      if (!results.responses || results.responses.length === 0) {
+      if (!results || !Array.isArray(results.responses) || results.responses.length === 0) {
         setClusteringData({
           clusters: [],
           totalUsers: 0,
@@ -32,13 +32,19 @@ const UserClustering: React.FC<UserClusteringProps> = ({ results }) => {
         return;
       }
 
-      // Extract comprehensive user features for clustering
+      const questionsLen = Array.isArray(results.questions) ? results.questions.length : 0;
+
+      // Extract comprehensive user features for clustering (handle array or object response shapes)
       const responsePatterns = results.responses.map((response, index) => {
-        const responseValues = response.responses?.map(r => r.answer) || [];
+        const rawResponses: any = response?.responses ?? [];
+        const responseValues: any[] = Array.isArray(rawResponses)
+          ? rawResponses.map((r: any) => (r ? r.answer : undefined)).filter((v: any) => v !== undefined && v !== null)
+          : Object.values(rawResponses).filter((v: any) => v !== undefined && v !== null);
+
         const uniqueResponses = new Set(responseValues).size;
-        const textResponses = responseValues.filter(val => typeof val === 'string' && val.length > 10);
+        const textResponses = responseValues.filter((val: any) => typeof val === 'string' && val.trim().length > 10);
         const avgTextLength = textResponses.length > 0 
-          ? textResponses.reduce((sum, text) => sum + text.length, 0) / textResponses.length 
+          ? textResponses.reduce((sum: number, text: string) => sum + text.length, 0) / textResponses.length 
           : 0;
         
         return {
@@ -47,19 +53,19 @@ const UserClustering: React.FC<UserClusteringProps> = ({ results }) => {
           email: response.respondent_email || null,
           age: response.respondent_age || null,
           occupation: response.respondent_occupation || null,
-          completionTime: response.completion_time || 0,
-          responseCount: response.responses?.length || 0,
+          completionTime: typeof response.completion_time === 'number' ? response.completion_time : 0,
+          responseCount: Array.isArray(rawResponses) ? rawResponses.length : Object.keys(rawResponses || {}).length,
           patterns: responseValues,
           // Advanced features for clustering
           responseVariety: uniqueResponses / Math.max(responseValues.length, 1), // 0-1 scale
           textEngagement: avgTextLength / 100, // Normalized text length
-          completionRate: (response.responses?.length || 0) / results.questions.length,
+          completionRate: (Array.isArray(rawResponses) ? rawResponses.length : Object.keys(rawResponses || {}).length) / Math.max(1, questionsLen),
           isAnonymous: !response.respondent_name || response.respondent_name.includes('Respondent')
         };
       });
 
       // Calculate statistics for clustering thresholds
-      const completionTimes = responsePatterns.map(r => r.completionTime).filter(t => t > 0);
+      const completionTimes = responsePatterns.map(r => r.completionTime || 0).filter(t => t > 0);
       const avgCompletionTime = completionTimes.length > 0 
         ? completionTimes.reduce((sum, time) => sum + time, 0) / completionTimes.length 
         : 0;
@@ -215,9 +221,11 @@ const UserClustering: React.FC<UserClusteringProps> = ({ results }) => {
         insights.push(`${largestCluster.name} is the largest segment (${largestCluster.percentage}%)`);
       }
 
-      if (fastResponders.length > thoughtfulResponders.length) {
+      const quickCount = typeof quickDecisionMakers !== 'undefined' ? quickDecisionMakers.length : 0;
+      const thoughtfulCount = typeof thoughtfulAnalyzers !== 'undefined' ? thoughtfulAnalyzers.length : 0;
+      if (quickCount > thoughtfulCount) {
         insights.push('Survey appears user-friendly with many quick completions');
-      } else if (thoughtfulResponders.length > fastResponders.length) {
+      } else if (thoughtfulCount > quickCount) {
         insights.push('Survey requires careful consideration from most users');
       }
 
@@ -227,6 +235,7 @@ const UserClustering: React.FC<UserClusteringProps> = ({ results }) => {
         insights
       });
     } catch (error) {
+      console.error('UserClustering generateClusteringData error:', error);
       setError('Failed to generate clustering data');
     } finally {
       setLoading(false);
