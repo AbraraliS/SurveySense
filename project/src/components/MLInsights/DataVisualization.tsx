@@ -9,7 +9,7 @@ interface DataVisualizationProps {
 const DataVisualization: React.FC<DataVisualizationProps> = ({ results }) => {
   const [selectedChart, setSelectedChart] = useState<'sentiment' | 'clustering' | 'patterns' | 'trends'>('sentiment');
 
-  // Generate sentiment data from real survey responses
+  // Advanced sentiment analysis with weighted scoring
   const generateSentimentData = () => {
     const textResponses = results.responses?.flatMap(response => 
       response.responses?.filter(resp => {
@@ -19,34 +19,98 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({ results }) => {
     ) || [];
 
     if (textResponses.length === 0) {
-      return { positive: 0, neutral: 0, negative: 0 };
+      return { positive: 0, neutral: 0, negative: 0, confidence: 0 };
     }
 
-    // Simple sentiment analysis
-    const positiveWords = ['good', 'great', 'excellent', 'amazing', 'wonderful', 'fantastic', 'love', 'like', 'happy', 'satisfied'];
-    const negativeWords = ['bad', 'terrible', 'awful', 'hate', 'dislike', 'angry', 'frustrated', 'disappointed', 'sad', 'horrible'];
+    // Enhanced sentiment analysis with weighted dictionaries
+    const sentimentWords = {
+      positive: {
+        'excellent': 3, 'amazing': 3, 'fantastic': 3, 'outstanding': 3, 'brilliant': 3,
+        'perfect': 2.5, 'wonderful': 2.5, 'awesome': 2.5, 'love': 2.5, 'great': 2,
+        'good': 1.5, 'happy': 1.5, 'satisfied': 1.5, 'pleased': 1.5, 'like': 1,
+        'nice': 1, 'fine': 0.5, 'okay': 0.5, 'decent': 0.5
+      },
+      negative: {
+        'terrible': 3, 'awful': 3, 'horrible': 3, 'disgusting': 3, 'hate': 2.5,
+        'worst': 2.5, 'frustrated': 2, 'angry': 2, 'disappointed': 2, 'sad': 1.5,
+        'bad': 1.5, 'poor': 1.5, 'annoying': 1.5, 'frustrating': 1.5, 'dislike': 1,
+        'unhappy': 1, 'upset': 1, 'concerned': 0.5, 'worried': 0.5
+      }
+    };
+
+    const negationWords = ['not', 'no', 'never', 'none', 'nothing', 'nobody', 'nowhere', 'neither', 'nor'];
+    const intensifiers = {
+      'very': 1.5, 'extremely': 2, 'incredibly': 2, 'absolutely': 2, 'completely': 1.5,
+      'totally': 1.5, 'really': 1.2, 'quite': 1.2, 'rather': 1.1, 'somewhat': 0.8
+    };
     
     let positive = 0, neutral = 0, negative = 0;
+    let totalConfidence = 0;
     
     textResponses.forEach(text => {
-      const words = text.toLowerCase().split(/\s+/);
-      let posCount = 0, negCount = 0;
+      const words = text.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/);
+      let positiveScore = 0, negativeScore = 0;
+      let sentimentWordsFound = 0;
       
-      words.forEach(word => {
-        if (positiveWords.some(pw => word.includes(pw))) posCount++;
-        if (negativeWords.some(nw => word.includes(nw))) negCount++;
-      });
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        const prevWord = i > 0 ? words[i - 1] : '';
+        
+        let wordScore = 0;
+        let sentiment = 'neutral';
+        
+        if (sentimentWords.positive[word]) {
+          wordScore = sentimentWords.positive[word];
+          sentiment = 'positive';
+        } else if (sentimentWords.negative[word]) {
+          wordScore = sentimentWords.negative[word];
+          sentiment = 'negative';
+        }
+        
+        if (wordScore > 0) {
+          sentimentWordsFound++;
+          
+          // Apply negation
+          if (negationWords.includes(prevWord)) {
+            wordScore = -wordScore;
+            sentiment = sentiment === 'positive' ? 'negative' : 'positive';
+          }
+          
+          // Apply intensifiers
+          if (intensifiers[prevWord]) {
+            wordScore *= intensifiers[prevWord];
+          }
+          
+          if (sentiment === 'positive') {
+            positiveScore += wordScore;
+          } else {
+            negativeScore += wordScore;
+          }
+        }
+      }
       
-      if (posCount > negCount) positive++;
-      else if (negCount > posCount) negative++;
-      else neutral++;
+      const totalScore = positiveScore + Math.abs(negativeScore);
+      const confidence = Math.min(1, sentimentWordsFound / 3);
+      totalConfidence += confidence;
+      
+      if (totalScore > 0) {
+        const score = (positiveScore - Math.abs(negativeScore)) / totalScore;
+        if (score > 0.15) positive++;
+        else if (score < -0.15) negative++;
+        else neutral++;
+      } else {
+        neutral++;
+      }
     });
 
     const total = positive + neutral + negative;
+    const avgConfidence = totalConfidence / textResponses.length;
+    
     return {
       positive: total > 0 ? positive / total : 0,
       neutral: total > 0 ? neutral / total : 0,
-      negative: total > 0 ? negative / total : 0
+      negative: total > 0 ? negative / total : 0,
+      confidence: avgConfidence
     };
   };
 

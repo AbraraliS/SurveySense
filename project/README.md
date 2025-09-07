@@ -187,6 +187,3 @@ Each MCQ includes 4 context-aware options tailored to the topic and audience.
 4. Test thoroughly
 5. Submit a pull request
 
-## License
-
-MIT License - see LICENSE file for details.

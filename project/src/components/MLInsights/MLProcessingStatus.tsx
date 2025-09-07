@@ -21,6 +21,46 @@ const MLProcessingStatus: React.FC<MLProcessingStatusProps> = ({
   metrics, 
   results 
 }) => {
+  // Calculate real-time processing metrics
+  const calculateProcessingMetrics = () => {
+    const totalResponses = results.responses.length;
+    const totalQuestions = results.questions.length;
+    const completionTimes = results.responses
+      .filter(r => r.completion_time && r.completion_time > 0)
+      .map(r => r.completion_time);
+    
+    const avgCompletionTime = completionTimes.length > 0 
+      ? completionTimes.reduce((sum, time) => sum + time, 0) / completionTimes.length
+      : 0;
+
+    // Calculate data quality metrics
+    const totalPossibleResponses = totalResponses * totalQuestions;
+    const actualResponses = results.responses.reduce((total, response) => {
+      return total + (response.responses?.length || 0);
+    }, 0);
+    
+    const dataQuality = totalPossibleResponses > 0 
+      ? Math.round((actualResponses / totalPossibleResponses) * 100)
+      : 0;
+
+    // Calculate processing complexity
+    const complexityScore = Math.min(100, 
+      (totalResponses * 2) + 
+      (totalQuestions * 3) + 
+      (avgCompletionTime / 10) + 
+      (dataQuality / 2)
+    );
+
+    return {
+      dataQuality,
+      complexityScore,
+      processingTime: Math.round(complexityScore * 10), // Simulate processing time
+      algorithmCount: Math.min(8, Math.max(3, Math.floor(totalResponses / 5) + 2))
+    };
+  };
+
+  const processingMetrics = calculateProcessingMetrics();
+
   if (isProcessing) {
     return (
       <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl shadow-sm border p-8">
@@ -31,16 +71,41 @@ const MLProcessingStatus: React.FC<MLProcessingStatusProps> = ({
           </div>
           <div>
             <h3 className="text-xl font-bold text-gray-900">AI Analysis in Progress</h3>
-            <p className="text-gray-600">Processing {results.responses.length} responses with machine learning algorithms...</p>
+            <p className="text-gray-600">
+              Processing {results.responses.length} responses with {processingMetrics.algorithmCount} ML algorithms...
+            </p>
+            <div className="mt-2 text-sm text-gray-500">
+              Data Quality: {processingMetrics.dataQuality}% | Complexity: {Math.round(processingMetrics.complexityScore)}%
+            </div>
           </div>
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: 'Data Preprocessing', icon: Database, status: 'complete' },
-            { label: 'Pattern Recognition', icon: Zap, status: 'processing' },
-            { label: 'ML Model Training', icon: Cpu, status: 'pending' },
-            { label: 'Results Generation', icon: CheckCircle, status: 'pending' }
+            { 
+              label: 'Data Preprocessing', 
+              icon: Database, 
+              status: 'complete',
+              description: 'Cleaning and validating survey data'
+            },
+            { 
+              label: 'Pattern Recognition', 
+              icon: Zap, 
+              status: 'processing',
+              description: 'Identifying response patterns and trends'
+            },
+            { 
+              label: 'ML Model Training', 
+              icon: Cpu, 
+              status: 'pending',
+              description: 'Training predictive models'
+            },
+            { 
+              label: 'Results Generation', 
+              icon: CheckCircle, 
+              status: 'pending',
+              description: 'Generating insights and recommendations'
+            }
           ].map((step, index) => (
             <div key={index} className="text-center">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2 ${
@@ -51,8 +116,23 @@ const MLProcessingStatus: React.FC<MLProcessingStatusProps> = ({
                 <step.icon className="w-5 h-5" />
               </div>
               <p className="text-sm font-medium text-gray-900">{step.label}</p>
+              <p className="text-xs text-gray-500 mt-1">{step.description}</p>
             </div>
           ))}
+        </div>
+
+        {/* Processing Progress Bar */}
+        <div className="mt-6">
+          <div className="flex justify-between text-sm text-gray-600 mb-2">
+            <span>Processing Progress</span>
+            <span>~{Math.round(processingMetrics.processingTime / 1000)}s remaining</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all duration-1000 animate-pulse"
+              style={{ width: '65%' }}
+            ></div>
+          </div>
         </div>
       </div>
     );

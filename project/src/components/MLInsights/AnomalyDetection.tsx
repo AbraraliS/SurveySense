@@ -36,29 +36,142 @@ const AnomalyDetection: React.FC<AnomalyDetectionProps> = ({ results }) => {
         .filter(r => r.completion_time && r.completion_time > 0)
         .map(r => r.completion_time);
       
+      // Advanced statistical analysis
       const avgCompletionTime = completionTimes.length > 0 
         ? completionTimes.reduce((sum, time) => sum + time, 0) / completionTimes.length
         : 0;
-
-      // Detect anomalies based on completion time
-      const slowResponses = results.responses.filter(r => 
-        r.completion_time && r.completion_time > avgCompletionTime * 3
-      );
       
-      if (slowResponses.length > 0) {
+      const stdCompletionTime = completionTimes.length > 1 
+        ? Math.sqrt(completionTimes.reduce((sum, time) => sum + Math.pow(time - avgCompletionTime, 2), 0) / completionTimes.length)
+        : 0;
+
+      // 1. Statistical Outlier Detection (Z-score based)
+      const zScoreThreshold = 2.5; // 99% confidence interval
+      const timeOutliers = results.responses.filter(r => {
+        if (!r.completion_time || r.completion_time <= 0) return false;
+        const zScore = Math.abs((r.completion_time - avgCompletionTime) / stdCompletionTime);
+        return zScore > zScoreThreshold;
+      });
+      
+      if (timeOutliers.length > 0) {
         anomalies.push({
-          id: 'slow_responses',
+          id: 'time_outliers',
           type: 'Performance',
-          severity: 'warning',
-          title: 'Unusually Slow Responses',
-          description: `${slowResponses.length} responses took significantly longer than average`,
-          confidence: Math.min(90, slowResponses.length * 15),
-          affectedUsers: slowResponses.length,
-          recommendation: 'Review question complexity or user experience'
+          severity: timeOutliers.length > results.responses.length * 0.1 ? 'critical' : 'warning',
+          title: 'Statistical Time Outliers',
+          description: `${timeOutliers.length} responses show extreme completion times (Z-score > ${zScoreThreshold})`,
+          confidence: Math.min(95, 70 + timeOutliers.length * 5),
+          affectedUsers: timeOutliers.length,
+          recommendation: 'Investigate potential technical issues or survey complexity',
+          affectedResponses: timeOutliers.map(r => r.response_id || 'unknown')
         });
       }
 
-      // Detect anomalies based on response patterns
+      // 2. Response Pattern Anomalies (Duplicate Detection)
+      const responsePatterns = results.responses.map(r => 
+        r.responses?.map(resp => resp.answer).join('|') || ''
+      );
+      const patternCounts = responsePatterns.reduce((acc, pattern) => {
+        acc[pattern] = (acc[pattern] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const duplicatePatterns = Object.entries(patternCounts)
+        .filter(([pattern, count]) => count > 2 && pattern.length > 0)
+        .sort(([,a], [,b]) => b - a);
+      
+      if (duplicatePatterns.length > 0) {
+        const totalDuplicates = duplicatePatterns.reduce((sum, [,count]) => sum + count, 0);
+        anomalies.push({
+          id: 'duplicate_patterns',
+          type: 'Data Quality',
+          severity: totalDuplicates > results.responses.length * 0.2 ? 'critical' : 'warning',
+          title: 'Duplicate Response Patterns',
+          description: `${duplicatePatterns.length} identical response patterns detected (${totalDuplicates} total responses)`,
+          confidence: Math.min(90, 60 + duplicatePatterns.length * 10),
+          affectedUsers: totalDuplicates,
+          recommendation: 'Check for bot activity or survey design issues',
+          affectedResponses: duplicatePatterns.slice(0, 5).map(([pattern]) => pattern.substring(0, 50) + '...')
+        });
+      }
+
+      // 3. Response Quality Anomalies
+      const qualityScores = results.responses.map(response => {
+        const totalQuestions = results.questions.length;
+        const answeredQuestions = response.responses?.length || 0;
+        const textResponses = response.responses?.filter(r => 
+          typeof r.answer === 'string' && r.answer.trim().length > 5
+        ).length || 0;
+        
+        return {
+          responseId: response.response_id,
+          completionRate: answeredQuestions / totalQuestions,
+          textQuality: textResponses / Math.max(answeredQuestions, 1),
+          overallScore: (answeredQuestions / totalQuestions) * 0.7 + (textResponses / Math.max(answeredQuestions, 1)) * 0.3
+        };
+      });
+
+      const avgQualityScore = qualityScores.reduce((sum, q) => sum + q.overallScore, 0) / qualityScores.length;
+      const lowQualityResponses = qualityScores.filter(q => q.overallScore < avgQualityScore * 0.5);
+      
+      if (lowQualityResponses.length > 0) {
+        anomalies.push({
+          id: 'low_quality_responses',
+          type: 'Data Quality',
+          severity: lowQualityResponses.length > results.responses.length * 0.3 ? 'critical' : 'warning',
+          title: 'Low Quality Responses',
+          description: `${lowQualityResponses.length} responses show significantly lower quality scores`,
+          confidence: Math.min(85, 65 + lowQualityResponses.length * 3),
+          affectedUsers: lowQualityResponses.length,
+          recommendation: 'Review question clarity and user engagement strategies',
+          affectedResponses: lowQualityResponses.slice(0, 5).map(r => r.responseId)
+        });
+      }
+
+      // 4. Temporal Anomalies (Response Burst Detection)
+      const responseTimes = results.responses
+        .map(r => new Date(r.submitted_at).getTime())
+        .sort((a, b) => a - b);
+      
+      const timeGaps = responseTimes.slice(1).map((time, i) => time - responseTimes[i]);
+      const avgGap = timeGaps.reduce((sum, gap) => sum + gap, 0) / timeGaps.length;
+      
+      // Detect response bursts (multiple responses within short time)
+      const burstThreshold = avgGap * 0.1; // 10% of average gap
+      const bursts = [];
+      let currentBurst = [responseTimes[0]];
+      
+      for (let i = 1; i < responseTimes.length; i++) {
+        if (responseTimes[i] - responseTimes[i-1] < burstThreshold) {
+          currentBurst.push(responseTimes[i]);
+        } else {
+          if (currentBurst.length > 3) {
+            bursts.push(currentBurst);
+          }
+          currentBurst = [responseTimes[i]];
+        }
+      }
+      
+      if (currentBurst.length > 3) {
+        bursts.push(currentBurst);
+      }
+      
+      if (bursts.length > 0) {
+        const totalBurstResponses = bursts.reduce((sum, burst) => sum + burst.length, 0);
+        anomalies.push({
+          id: 'response_bursts',
+          type: 'Engagement',
+          severity: totalBurstResponses > results.responses.length * 0.15 ? 'critical' : 'warning',
+          title: 'Response Burst Activity',
+          description: `${bursts.length} response bursts detected (${totalBurstResponses} responses in rapid succession)`,
+          confidence: Math.min(80, 50 + bursts.length * 8),
+          affectedUsers: totalBurstResponses,
+          recommendation: 'Investigate potential coordinated responses or technical issues',
+          affectedResponses: bursts.slice(0, 3).map(burst => `${burst.length} responses in ${Math.round((burst[burst.length-1] - burst[0]) / 1000)}s`)
+        });
+      }
+
+      // 5. Empty or Incomplete Response Anomalies
       const emptyResponses = results.responses.filter(r => 
         !r.responses || r.responses.length === 0
       );
@@ -72,32 +185,13 @@ const AnomalyDetection: React.FC<AnomalyDetectionProps> = ({ results }) => {
           description: `${emptyResponses.length} response sessions contain no answers`,
           confidence: 95,
           affectedUsers: emptyResponses.length,
-          recommendation: 'Check survey functionality and user flow'
+          recommendation: 'Check survey functionality and user flow',
+          affectedResponses: emptyResponses.map(r => r.response_id || 'unknown')
         });
       }
 
-      // Detect anomalies based on response count
-      const totalQuestions = results.questions.length;
-      const incompleteResponses = results.responses.filter(r => 
-        r.responses && r.responses.length < totalQuestions * 0.5
-      );
-      
-      if (incompleteResponses.length > 0) {
-        anomalies.push({
-          id: 'incomplete_responses',
-          type: 'Completeness',
-          severity: 'warning',
-          title: 'Incomplete Responses',
-          description: `${incompleteResponses.length} responses are significantly incomplete`,
-          confidence: Math.min(85, incompleteResponses.length * 12),
-          affectedUsers: incompleteResponses.length,
-          recommendation: 'Consider making questions optional or improving survey flow'
-        });
-      }
-
-      // Detect anomalies based on response frequency
-      const responseCounts = results.responses.length;
-      if (responseCounts === 0) {
+      // 6. No responses anomaly
+      if (results.responses.length === 0) {
         anomalies.push({
           id: 'no_responses',
           type: 'Engagement',
@@ -106,7 +200,8 @@ const AnomalyDetection: React.FC<AnomalyDetectionProps> = ({ results }) => {
           description: 'Survey has received no responses yet',
           confidence: 100,
           affectedUsers: 0,
-          recommendation: 'Promote survey and check accessibility'
+          recommendation: 'Promote survey and check accessibility',
+          affectedResponses: []
         });
       }
 
