@@ -175,9 +175,9 @@ export const getAllSurveys = async (): Promise<Survey[]> => {
   } catch (error: any) {
     if (!import.meta.env.PROD) console.error('Failed to fetch surveys:', error);
     
-    // If backend is not available or has errors, return mock data
-    if (error.code === 'ERR_NETWORK' || error.response?.status >= 500) {
-      if (!import.meta.env.PROD) console.warn('Backend error, returning mock data for development');
+    // If backend is not available or has errors, return mock data only in development
+    if ((error.code === 'ERR_NETWORK' || error.response?.status >= 500) && !import.meta.env.PROD) {
+      console.warn('Backend error, returning mock data for development');
       return [
         {
           survey_id: 'mock-1',
