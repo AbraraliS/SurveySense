@@ -14,6 +14,7 @@ import TakeSurvey from './components/TakeSurvey';
 import Results from './components/Results';
 import Login from './components/auth/Login';
 import Signup from './components/auth/Signup';
+import Settings from './components/Settings';
 
 import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
@@ -69,6 +70,11 @@ function App() {
               <Route path="/surveys" element={
                 <ProtectedRoute>
                   <YourSurveys />
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={
+                <ProtectedRoute>
+                  <Settings />
                 </ProtectedRoute>
               } />
               <Route path="/survey/:surveyId/edit" element={
