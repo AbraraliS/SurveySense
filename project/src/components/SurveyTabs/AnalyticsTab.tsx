@@ -15,14 +15,43 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ results }) => {
     });
   };
 
-  // Analytics calculations
-  const responseTrend = Object.entries(results.analytics.response_by_date).map(([date, count]) => ({
-    date,
-    count
-  })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  // Create response trend from actual response data
+  const createResponseTrend = () => {
+    if (!results.responses || results.responses.length === 0) return [];
+    
+    // Group responses by date
+    const dateGroups: { [key: string]: number } = {};
+    results.responses.forEach(response => {
+      const date = new Date(response.created_at).toISOString().split('T')[0];
+      dateGroups[date] = (dateGroups[date] || 0) + 1;
+    });
+    
+    return Object.entries(dateGroups)
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  };
 
-  const questionAnalytics = results.questions.map(question => {
-    const responses = results.responses.map(r => r.responses[question.question_id]).filter(Boolean);
+  const responseTrend = createResponseTrend();
+
+  // Calculate completion time analytics
+  const completionTimes = results.responses
+    ?.filter(r => r.completion_time && r.completion_time > 0)
+    ?.map(r => r.completion_time) || [];
+  
+  const avgCompletionTime = completionTimes.length > 0 
+    ? Math.round(completionTimes.reduce((sum, time) => sum + time, 0) / completionTimes.length)
+    : 0;
+
+  // Calculate response rate
+  const totalPossibleResponses = results.questions?.length || 0;
+  const actualResponses = results.responses?.length || 0;
+  const responseRate = totalPossibleResponses > 0 ? Math.round((actualResponses / totalPossibleResponses) * 100) : 0;
+
+  const questionAnalytics = results.questions?.map(question => {
+    // Extract responses for this specific question from all response sessions
+    const responses = results.responses?.flatMap(r => 
+      r.responses?.filter(resp => resp.question_id === question.question_id).map(resp => resp.answer) || []
+    ).filter(Boolean) || [];
     
     if (question.question_type === 'MCQ' && question.options) {
       const optionCounts = question.options.reduce((acc, option) => {
@@ -49,10 +78,29 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ results }) => {
         responses: responses
       };
     }
-  });
+  }) || [];
 
   return (
     <div className="space-y-8">
+      {/* Summary Analytics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-2xl shadow-sm border p-6">
+          <h3 className="text-sm font-medium text-gray-500 mb-2">Total Responses</h3>
+          <p className="text-3xl font-bold text-blue-600">{actualResponses}</p>
+          <p className="text-sm text-gray-500 mt-1">respondents</p>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm border p-6">
+          <h3 className="text-sm font-medium text-gray-500 mb-2">Avg Completion Time</h3>
+          <p className="text-3xl font-bold text-green-600">{avgCompletionTime}s</p>
+          <p className="text-sm text-gray-500 mt-1">per survey</p>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm border p-6">
+          <h3 className="text-sm font-medium text-gray-500 mb-2">Response Rate</h3>
+          <p className="text-3xl font-bold text-purple-600">{responseRate}%</p>
+          <p className="text-sm text-gray-500 mt-1">completion rate</p>
+        </div>
+      </div>
+
       {/* Response Trend */}
       <div className="bg-white rounded-2xl shadow-sm border p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
@@ -69,7 +117,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ results }) => {
                     <div 
                       className="bg-blue-500 h-2 rounded-full transition-all duration-500"
                       style={{ 
-                        width: `${Math.max(10, (count / Math.max(...responseTrend.map(t => t.count))) * 100)}%` 
+                        width: `${responseTrend.length > 0 ? Math.max(10, (count / Math.max(...responseTrend.map(t => t.count))) * 100) : 10}%` 
                       }}
                     ></div>
                   </div>
@@ -83,6 +131,30 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ results }) => {
         )}
       </div>
 
+      {/* Completion Time Distribution */}
+      {completionTimes.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm border p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+            <BarChart3 className="w-5 h-5 text-green-600" />
+            <span>Completion Time Distribution</span>
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Average Time</span>
+              <span className="font-semibold text-green-600">{avgCompletionTime}s</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Fastest Completion</span>
+              <span className="font-semibold text-green-600">{Math.min(...completionTimes)}s</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Slowest Completion</span>
+              <span className="font-semibold text-green-600">{Math.max(...completionTimes)}s</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Question Analytics */}
       <div className="space-y-6">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
@@ -90,7 +162,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ results }) => {
           <span>Question Analysis</span>
         </h3>
         
-        {questionAnalytics.map((question) => (
+        {questionAnalytics.length > 0 ? questionAnalytics.map((question) => (
           <div key={question.question_id} className="bg-white rounded-2xl shadow-sm border p-6">
             <h4 className="font-semibold text-gray-900 mb-4">{question.question_text}</h4>
             <div className="flex items-center justify-between mb-4">
@@ -142,7 +214,11 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ results }) => {
               </div>
             )}
           </div>
-        ))}
+        )) : (
+          <div className="bg-white rounded-2xl shadow-sm border p-6">
+            <p className="text-gray-500 text-center py-8">No question data available</p>
+          </div>
+        )}
       </div>
     </div>
   );

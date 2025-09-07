@@ -11,6 +11,7 @@ const ResponsesTab: React.FC<ResponsesTabProps> = ({ results }) => {
   const [filterBy, setFilterBy] = useState<'all' | 'registered' | 'anonymous'>('all');
   const [selectedResponse, setSelectedResponse] = useState<SurveyResponse | null>(null);
 
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -29,13 +30,14 @@ const ResponsesTab: React.FC<ResponsesTabProps> = ({ results }) => {
 
   const filteredResponses = results.responses.filter(response => {
     const matchesSearch = !searchTerm || 
-      (response.user_name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (response.user_email?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (response.respondent_name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (response.respondent_email?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (response.respondent_occupation?.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (response.response_id.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesFilter = filterBy === 'all' || 
-      (filterBy === 'registered' && response.user_id) ||
-      (filterBy === 'anonymous' && !response.user_id);
+      (filterBy === 'registered' && response.respondent_email) ||
+      (filterBy === 'anonymous' && !response.respondent_email);
 
     return matchesSearch && matchesFilter;
   });
@@ -109,20 +111,23 @@ const ResponsesTab: React.FC<ResponsesTabProps> = ({ results }) => {
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">
-                          {response.user_name || 'Anonymous User'}
+                          {response.respondent_name || 'Anonymous User'}
                         </div>
-                        <div className="text-sm text-gray-500 flex items-center space-x-2">
-                          {response.user_email ? (
-                            <span className="flex items-center space-x-1">
+                        <div className="text-sm text-gray-500 space-y-1">
+                          {response.respondent_email && (
+                            <div className="flex items-center space-x-1">
                               <Mail className="w-3 h-3" />
-                              <span>{response.user_email}</span>
-                            </span>
-                          ) : (
-                            <span className="flex items-center space-x-1">
-                              <Globe className="w-3 h-3" />
-                              <span>{response.user_ip || 'Unknown IP'}</span>
-                            </span>
+                              <span>{response.respondent_email}</span>
+                            </div>
                           )}
+                          <div className="flex items-center space-x-3 text-xs">
+                            {response.respondent_age && (
+                              <span>Age: {response.respondent_age}</span>
+                            )}
+                            {response.respondent_occupation && (
+                              <span>• {response.respondent_occupation}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -132,11 +137,11 @@ const ResponsesTab: React.FC<ResponsesTabProps> = ({ results }) => {
                       {response.response_id.substring(0, 8)}...
                     </div>
                     <div className="text-xs text-gray-500">
-                      {response.user_id ? 'Registered' : 'Anonymous'}
+                      {response.respondent_email ? 'Registered' : 'Anonymous'}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(response.submitted_at)}
+                    {formatDate(response.created_at)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {response.completion_time ? formatDuration(response.completion_time) : 'N/A'}
@@ -191,23 +196,27 @@ const ResponsesTab: React.FC<ResponsesTabProps> = ({ results }) => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600">Name</p>
-                    <p className="font-medium">{selectedResponse.user_name || 'Anonymous'}</p>
+                    <p className="font-medium">{selectedResponse.respondent_name || 'Anonymous'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Email</p>
-                    <p className="font-medium">{selectedResponse.user_email || 'N/A'}</p>
+                    <p className="font-medium">{selectedResponse.respondent_email || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">User ID</p>
-                    <p className="font-medium font-mono">{selectedResponse.user_id || 'Anonymous'}</p>
+                    <p className="text-sm text-gray-600">Age</p>
+                    <p className="font-medium">{selectedResponse.respondent_age || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">IP Address</p>
-                    <p className="font-medium">{selectedResponse.user_ip || 'N/A'}</p>
+                    <p className="text-sm text-gray-600">Occupation</p>
+                    <p className="font-medium">{selectedResponse.respondent_occupation || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Response ID</p>
+                    <p className="font-medium font-mono text-xs">{selectedResponse.response_id || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Submitted At</p>
-                    <p className="font-medium">{formatDate(selectedResponse.submitted_at)}</p>
+                    <p className="font-medium">{formatDate(selectedResponse.created_at)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Completion Time</p>
@@ -222,16 +231,23 @@ const ResponsesTab: React.FC<ResponsesTabProps> = ({ results }) => {
               <div>
                 <h3 className="font-semibold text-gray-900 mb-4">Responses</h3>
                 <div className="space-y-4">
-                  {results.questions.map((question) => (
-                    <div key={question.question_id} className="border rounded-lg p-4">
-                      <p className="font-medium text-gray-900 mb-2">{question.question_text}</p>
-                      <div className="bg-blue-50 rounded-lg p-3">
-                        <p className="text-blue-800">
-                          {selectedResponse.responses[question.question_id] || 'No response'}
-                        </p>
+                  {results.questions.map((question) => {
+                    // Find the response for this question
+                    const questionResponse = selectedResponse.responses.find(
+                      (response) => response.question_id === question.question_id
+                    );
+                    
+                    return (
+                      <div key={question.question_id} className="border rounded-lg p-4">
+                        <p className="font-medium text-gray-900 mb-2">{question.question_text}</p>
+                        <div className="bg-blue-50 rounded-lg p-3">
+                          <p className="text-blue-800">
+                            {questionResponse?.answer || 'No response'}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>

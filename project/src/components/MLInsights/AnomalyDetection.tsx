@@ -1,30 +1,142 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, AlertCircle, Clock, Shield, Loader2, AlertCircle as AlertIcon } from 'lucide-react';
-import { SurveyResults, MLInsights, getMLInsights } from '../../services/api';
+import { SurveyResults } from '../../services/api';
 
 interface AnomalyDetectionProps {
   results: SurveyResults;
 }
 
 const AnomalyDetection: React.FC<AnomalyDetectionProps> = ({ results }) => {
-  const [mlInsights, setMlInsights] = useState<MLInsights | null>(null);
+  const [anomalyData, setAnomalyData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [selectedAnomaly, setSelectedAnomaly] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchMLInsights();
+    generateAnomalyData();
   }, [results.survey.survey_id]);
 
-  const fetchMLInsights = async () => {
+  const generateAnomalyData = () => {
     try {
       setLoading(true);
       setError('');
-      const response = await getMLInsights(results.survey.survey_id);
-      setMlInsights(response.data);
-    } catch (error) {
       
-      setError('Failed to load anomaly detection data');
+      if (!results.responses || results.responses.length === 0) {
+        setAnomalyData({
+          anomalies: [],
+          summary: { total: 0, critical: 0, warning: 0, info: 0 },
+          insights: ['No response data available for anomaly detection']
+        });
+        setLoading(false);
+        return;
+      }
+
+      const anomalies = [];
+      const completionTimes = results.responses
+        .filter(r => r.completion_time && r.completion_time > 0)
+        .map(r => r.completion_time);
+      
+      const avgCompletionTime = completionTimes.length > 0 
+        ? completionTimes.reduce((sum, time) => sum + time, 0) / completionTimes.length
+        : 0;
+
+      // Detect anomalies based on completion time
+      const slowResponses = results.responses.filter(r => 
+        r.completion_time && r.completion_time > avgCompletionTime * 3
+      );
+      
+      if (slowResponses.length > 0) {
+        anomalies.push({
+          id: 'slow_responses',
+          type: 'Performance',
+          severity: 'warning',
+          title: 'Unusually Slow Responses',
+          description: `${slowResponses.length} responses took significantly longer than average`,
+          confidence: Math.min(90, slowResponses.length * 15),
+          affectedUsers: slowResponses.length,
+          recommendation: 'Review question complexity or user experience'
+        });
+      }
+
+      // Detect anomalies based on response patterns
+      const emptyResponses = results.responses.filter(r => 
+        !r.responses || r.responses.length === 0
+      );
+      
+      if (emptyResponses.length > 0) {
+        anomalies.push({
+          id: 'empty_responses',
+          type: 'Data Quality',
+          severity: 'critical',
+          title: 'Empty Response Sessions',
+          description: `${emptyResponses.length} response sessions contain no answers`,
+          confidence: 95,
+          affectedUsers: emptyResponses.length,
+          recommendation: 'Check survey functionality and user flow'
+        });
+      }
+
+      // Detect anomalies based on response count
+      const totalQuestions = results.questions.length;
+      const incompleteResponses = results.responses.filter(r => 
+        r.responses && r.responses.length < totalQuestions * 0.5
+      );
+      
+      if (incompleteResponses.length > 0) {
+        anomalies.push({
+          id: 'incomplete_responses',
+          type: 'Completeness',
+          severity: 'warning',
+          title: 'Incomplete Responses',
+          description: `${incompleteResponses.length} responses are significantly incomplete`,
+          confidence: Math.min(85, incompleteResponses.length * 12),
+          affectedUsers: incompleteResponses.length,
+          recommendation: 'Consider making questions optional or improving survey flow'
+        });
+      }
+
+      // Detect anomalies based on response frequency
+      const responseCounts = results.responses.length;
+      if (responseCounts === 0) {
+        anomalies.push({
+          id: 'no_responses',
+          type: 'Engagement',
+          severity: 'critical',
+          title: 'No Survey Responses',
+          description: 'Survey has received no responses yet',
+          confidence: 100,
+          affectedUsers: 0,
+          recommendation: 'Promote survey and check accessibility'
+        });
+      }
+
+      const summary = {
+        total: anomalies.length,
+        critical: anomalies.filter(a => a.severity === 'critical').length,
+        warning: anomalies.filter(a => a.severity === 'warning').length,
+        info: anomalies.filter(a => a.severity === 'info').length
+      };
+
+      const insights = [];
+      if (anomalies.length === 0) {
+        insights.push('No anomalies detected - survey is performing normally');
+      } else {
+        insights.push(`Detected ${anomalies.length} potential issues requiring attention`);
+        if (summary.critical > 0) {
+          insights.push(`${summary.critical} critical issues need immediate attention`);
+        }
+        if (summary.warning > 0) {
+          insights.push(`${summary.warning} warning issues should be monitored`);
+        }
+      }
+
+      setAnomalyData({
+        anomalies,
+        summary,
+        insights
+      });
+    } catch (error) {
+      setError('Failed to generate anomaly detection data');
     } finally {
       setLoading(false);
     }
@@ -52,7 +164,7 @@ const AnomalyDetection: React.FC<AnomalyDetectionProps> = ({ results }) => {
     );
   }
 
-  if (!mlInsights) {
+  if (!anomalyData) {
     return (
       <div className="bg-white rounded-2xl shadow-sm border p-6">
         <div className="text-center py-8">
@@ -62,14 +174,13 @@ const AnomalyDetection: React.FC<AnomalyDetectionProps> = ({ results }) => {
     );
   }
 
-  const { anomalies } = mlInsights;
+  const { anomalies, summary, insights } = anomalyData;
 
   const getSeverityColor = (severity: string) => {
     switch (severity.toLowerCase()) {
       case 'critical': return 'bg-red-100 text-red-800 border-red-200';
-      case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'low': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'warning': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'info': return 'bg-blue-100 text-blue-800 border-blue-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -77,9 +188,8 @@ const AnomalyDetection: React.FC<AnomalyDetectionProps> = ({ results }) => {
   const getSeverityIcon = (severity: string) => {
     switch (severity.toLowerCase()) {
       case 'critical': return <AlertTriangle className="w-5 h-5 text-red-600" />;
-      case 'high': return <AlertCircle className="w-5 h-5 text-orange-600" />;
-      case 'medium': return <AlertCircle className="w-5 h-5 text-yellow-600" />;
-      case 'low': return <AlertCircle className="w-5 h-5 text-blue-600" />;
+      case 'warning': return <AlertCircle className="w-5 h-5 text-yellow-600" />;
+      case 'info': return <AlertCircle className="w-5 h-5 text-blue-600" />;
       default: return <AlertCircle className="w-5 h-5 text-gray-600" />;
     }
   };

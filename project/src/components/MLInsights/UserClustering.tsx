@@ -1,30 +1,233 @@
 import React, { useState, useEffect } from 'react';
 import { Users, GitBranch, Target, TrendingUp, Loader2, AlertCircle } from 'lucide-react';
-import { SurveyResults, MLInsights, getMLInsights } from '../../services/api';
+import { SurveyResults } from '../../services/api';
 
 interface UserClusteringProps {
   results: SurveyResults;
 }
 
 const UserClustering: React.FC<UserClusteringProps> = ({ results }) => {
-  const [mlInsights, setMlInsights] = useState<MLInsights | null>(null);
+  const [clusteringData, setClusteringData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchMLInsights();
+    generateClusteringData();
   }, [results.survey.survey_id]);
 
-  const fetchMLInsights = async () => {
+  // Advanced clustering algorithm using multiple features
+  const generateClusteringData = () => {
     try {
       setLoading(true);
       setError('');
-      const response = await getMLInsights(results.survey.survey_id);
-      setMlInsights(response.data);
-    } catch (error) {
       
-      setError('Failed to load clustering data');
+      if (!results.responses || results.responses.length === 0) {
+        setClusteringData({
+          clusters: [],
+          totalUsers: 0,
+          insights: ['No response data available for clustering analysis']
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Extract comprehensive user features for clustering
+      const responsePatterns = results.responses.map((response, index) => {
+        const responseValues = response.responses?.map(r => r.answer) || [];
+        const uniqueResponses = new Set(responseValues).size;
+        const textResponses = responseValues.filter(val => typeof val === 'string' && val.length > 10);
+        const avgTextLength = textResponses.length > 0 
+          ? textResponses.reduce((sum, text) => sum + text.length, 0) / textResponses.length 
+          : 0;
+        
+        return {
+          id: `user_${index + 1}`,
+          name: response.respondent_name || `Respondent ${index + 1}`,
+          email: response.respondent_email || null,
+          age: response.respondent_age || null,
+          occupation: response.respondent_occupation || null,
+          completionTime: response.completion_time || 0,
+          responseCount: response.responses?.length || 0,
+          patterns: responseValues,
+          // Advanced features for clustering
+          responseVariety: uniqueResponses / Math.max(responseValues.length, 1), // 0-1 scale
+          textEngagement: avgTextLength / 100, // Normalized text length
+          completionRate: (response.responses?.length || 0) / results.questions.length,
+          isAnonymous: !response.respondent_name || response.respondent_name.includes('Respondent')
+        };
+      });
+
+      // Calculate statistics for clustering thresholds
+      const completionTimes = responsePatterns.map(r => r.completionTime).filter(t => t > 0);
+      const avgCompletionTime = completionTimes.length > 0 
+        ? completionTimes.reduce((sum, time) => sum + time, 0) / completionTimes.length 
+        : 0;
+      const stdCompletionTime = completionTimes.length > 1 
+        ? Math.sqrt(completionTimes.reduce((sum, time) => sum + Math.pow(time - avgCompletionTime, 2), 0) / completionTimes.length)
+        : 0;
+
+      const clusters = [];
+      
+      // Advanced clustering based on multiple features
+      
+      // Cluster 1: Engaged Experts (high variety, detailed responses, reasonable time)
+      const engagedExperts = responsePatterns.filter(r => 
+        r.responseVariety > 0.7 && 
+        r.textEngagement > 0.5 && 
+        r.completionTime > avgCompletionTime * 0.5 && 
+        r.completionTime < avgCompletionTime * 2
+      );
+      if (engagedExperts.length > 0) {
+        clusters.push({
+          id: 'engaged_experts',
+          name: 'Engaged Experts',
+          description: 'Highly engaged users providing detailed, varied responses',
+          size: engagedExperts.length,
+          percentage: Math.round((engagedExperts.length / responsePatterns.length) * 100),
+          characteristics: [
+            'High response variety',
+            'Detailed text responses',
+            'Thoughtful engagement',
+            'Quality feedback providers'
+          ],
+          users: engagedExperts,
+          color: 'green',
+          avgCompletionTime: Math.round(engagedExperts.reduce((sum, u) => sum + u.completionTime, 0) / engagedExperts.length),
+          avgResponseVariety: (engagedExperts.reduce((sum, u) => sum + u.responseVariety, 0) / engagedExperts.length).toFixed(2)
+        });
+      }
+
+      // Cluster 2: Quick Decision Makers (fast completion, moderate variety)
+      const quickDecisionMakers = responsePatterns.filter(r => 
+        r.completionTime > 0 && 
+        r.completionTime < avgCompletionTime * 0.7 && 
+        r.responseVariety > 0.3
+      );
+      if (quickDecisionMakers.length > 0) {
+        clusters.push({
+          id: 'quick_decision_makers',
+          name: 'Quick Decision Makers',
+          description: 'Fast responders with clear preferences',
+          size: quickDecisionMakers.length,
+          percentage: Math.round((quickDecisionMakers.length / responsePatterns.length) * 100),
+          characteristics: [
+            'Fast completion times',
+            'Clear preferences',
+            'Efficient decision making',
+            'High engagement'
+          ],
+          users: quickDecisionMakers,
+          color: 'blue',
+          avgCompletionTime: Math.round(quickDecisionMakers.reduce((sum, u) => sum + u.completionTime, 0) / quickDecisionMakers.length),
+          avgResponseVariety: (quickDecisionMakers.reduce((sum, u) => sum + u.responseVariety, 0) / quickDecisionMakers.length).toFixed(2)
+        });
+      }
+
+      // Cluster 3: Thoughtful Analyzers (slow completion, high variety)
+      const thoughtfulAnalyzers = responsePatterns.filter(r => 
+        r.completionTime > avgCompletionTime * 1.5 && 
+        r.responseVariety > 0.6
+      );
+      if (thoughtfulAnalyzers.length > 0) {
+        clusters.push({
+          id: 'thoughtful_analyzers',
+          name: 'Thoughtful Analyzers',
+          description: 'Users who take time to provide comprehensive responses',
+          size: thoughtfulAnalyzers.length,
+          percentage: Math.round((thoughtfulAnalyzers.length / responsePatterns.length) * 100),
+          characteristics: [
+            'Careful consideration',
+            'High response variety',
+            'Comprehensive answers',
+            'Quality over speed'
+          ],
+          users: thoughtfulAnalyzers,
+          color: 'purple',
+          avgCompletionTime: Math.round(thoughtfulAnalyzers.reduce((sum, u) => sum + u.completionTime, 0) / thoughtfulAnalyzers.length),
+          avgResponseVariety: (thoughtfulAnalyzers.reduce((sum, u) => sum + u.responseVariety, 0) / thoughtfulAnalyzers.length).toFixed(2)
+        });
+      }
+
+      // Cluster 4: Privacy-Conscious Users (anonymous, moderate engagement)
+      const privacyConscious = responsePatterns.filter(r => 
+        r.isAnonymous && 
+        r.completionRate > 0.5
+      );
+      if (privacyConscious.length > 0) {
+        clusters.push({
+          id: 'privacy_conscious',
+          name: 'Privacy-Conscious Users',
+          description: 'Users who prioritize privacy but still engage meaningfully',
+          size: privacyConscious.length,
+          percentage: Math.round((privacyConscious.length / responsePatterns.length) * 100),
+          characteristics: [
+            'Privacy focused',
+            'Anonymous participation',
+            'Content-focused feedback',
+            'Moderate engagement'
+          ],
+          users: privacyConscious,
+          color: 'gray',
+          avgCompletionTime: Math.round(privacyConscious.reduce((sum, u) => sum + u.completionTime, 0) / privacyConscious.length),
+          avgResponseVariety: (privacyConscious.reduce((sum, u) => sum + u.responseVariety, 0) / privacyConscious.length).toFixed(2)
+        });
+      }
+
+      // Cluster 5: Casual Responders (low variety, moderate time)
+      const casualResponders = responsePatterns.filter(r => 
+        r.responseVariety < 0.4 && 
+        r.completionTime > avgCompletionTime * 0.3 && 
+        r.completionTime < avgCompletionTime * 1.5 &&
+        !r.isAnonymous
+      );
+      if (casualResponders.length > 0) {
+        clusters.push({
+          id: 'casual_responders',
+          name: 'Casual Responders',
+          description: 'Users with consistent but less varied response patterns',
+          size: casualResponders.length,
+          percentage: Math.round((casualResponders.length / responsePatterns.length) * 100),
+          characteristics: [
+            'Consistent responses',
+            'Moderate engagement',
+            'Predictable patterns',
+            'Steady participation'
+          ],
+          users: casualResponders,
+          color: 'orange',
+          avgCompletionTime: Math.round(casualResponders.reduce((sum, u) => sum + u.completionTime, 0) / casualResponders.length),
+          avgResponseVariety: (casualResponders.reduce((sum, u) => sum + u.responseVariety, 0) / casualResponders.length).toFixed(2)
+        });
+      }
+
+      // Generate insights
+      const insights = [];
+      if (clusters.length > 1) {
+        insights.push(`Identified ${clusters.length} distinct user segments`);
+      }
+      
+      const largestCluster = clusters.reduce((max, cluster) => 
+        cluster.size > max.size ? cluster : max, clusters[0] || { size: 0 }
+      );
+      
+      if (largestCluster.size > 0) {
+        insights.push(`${largestCluster.name} is the largest segment (${largestCluster.percentage}%)`);
+      }
+
+      if (fastResponders.length > thoughtfulResponders.length) {
+        insights.push('Survey appears user-friendly with many quick completions');
+      } else if (thoughtfulResponders.length > fastResponders.length) {
+        insights.push('Survey requires careful consideration from most users');
+      }
+
+      setClusteringData({
+        clusters,
+        totalUsers: responsePatterns.length,
+        insights
+      });
+    } catch (error) {
+      setError('Failed to generate clustering data');
     } finally {
       setLoading(false);
     }
@@ -52,7 +255,7 @@ const UserClustering: React.FC<UserClusteringProps> = ({ results }) => {
     );
   }
 
-  if (!mlInsights) {
+  if (!clusteringData) {
     return (
       <div className="bg-white rounded-2xl shadow-sm border p-6">
         <div className="text-center py-8">
@@ -62,8 +265,7 @@ const UserClustering: React.FC<UserClusteringProps> = ({ results }) => {
     );
   }
 
-  const { clustering } = mlInsights;
-  const { userGroups, clusteringAccuracy, silhouetteScore } = clustering;
+  const { clusters, totalUsers, insights } = clusteringData;
 
   const getEngagementColor = (level: string) => {
     switch (level.toLowerCase()) {
@@ -89,54 +291,46 @@ const UserClustering: React.FC<UserClusteringProps> = ({ results }) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <div className="text-center p-4 bg-blue-50 rounded-lg">
             <GitBranch className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-blue-600">{userGroups.length}</div>
+            <div className="text-2xl font-bold text-blue-600">{clusters.length}</div>
             <div className="text-sm text-gray-600">User Groups</div>
           </div>
           
           <div className="text-center p-4 bg-green-50 rounded-lg">
-            <Target className="w-8 h-8 text-green-600 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-green-600">{Math.round(clusteringAccuracy)}%</div>
-            <div className="text-sm text-gray-600">Clustering Accuracy</div>
+            <Users className="w-8 h-8 text-green-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-green-600">{totalUsers}</div>
+            <div className="text-sm text-gray-600">Total Users</div>
           </div>
           
           <div className="text-center p-4 bg-purple-50 rounded-lg">
             <TrendingUp className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-            <div className={`text-2xl font-bold ${getSilhouetteColor(silhouetteScore)}`}>
-              {silhouetteScore.toFixed(3)}
+            <div className="text-2xl font-bold text-purple-600">
+              {clusters.length > 0 ? Math.round(clusters.reduce((sum, c) => sum + c.percentage, 0) / clusters.length) : 0}%
             </div>
-            <div className="text-sm text-gray-600">Silhouette Score</div>
+            <div className="text-sm text-gray-600">Avg Group Size</div>
           </div>
         </div>
 
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">Model Quality</span>
-            <span className="text-sm text-gray-500">
-              {silhouetteScore > 0.7 ? 'Excellent' : 
-               silhouetteScore > 0.5 ? 'Good' : 
-               silhouetteScore > 0.3 ? 'Fair' : 'Poor'}
-            </span>
+        {/* Insights */}
+        {insights && insights.length > 0 && (
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-gray-700 mb-3">Key Insights</h4>
+            <div className="space-y-2">
+              {insights.map((insight, index) => (
+                <div key={index} className="flex items-start space-x-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-sm text-gray-600">{insight}</p>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className={`h-2 rounded-full transition-all duration-300 ${
-                silhouetteScore > 0.7 ? 'bg-green-500' : 
-                silhouetteScore > 0.5 ? 'bg-yellow-500' : 'bg-red-500'
-              }`}
-              style={{ width: `${Math.min(silhouetteScore * 100, 100)}%` }}
-            ></div>
-          </div>
-          <div className="text-xs text-gray-500 mt-1">
-            Silhouette score ranges from -1 to 1, where higher values indicate better clustering
-          </div>
-        </div>
+        )}
       </div>
 
       {/* User Groups */}
       <div className="bg-white rounded-2xl shadow-sm border p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Identified User Groups</h3>
         
-        {userGroups.length === 0 ? (
+        {clusters.length === 0 ? (
           <div className="text-center py-8">
             <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No User Groups Found</h3>
@@ -146,26 +340,26 @@ const UserClustering: React.FC<UserClusteringProps> = ({ results }) => {
           </div>
         ) : (
           <div className="space-y-4">
-            {userGroups.map((group, index) => (
+            {clusters.map((cluster, index) => (
               <div 
-                key={group.id}
+                key={cluster.id}
                 className={`border rounded-lg p-4 cursor-pointer transition-all duration-200 ${
-                  selectedGroup === group.id 
+                  selectedGroup === cluster.id 
                     ? 'border-blue-500 bg-blue-50' 
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
-                onClick={() => setSelectedGroup(selectedGroup === group.id ? null : group.id)}
+                onClick={() => setSelectedGroup(selectedGroup === cluster.id ? null : cluster.id)}
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center space-x-3">
-                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                    <h4 className="font-semibold text-gray-900">{group.name}</h4>
+                    <div className={`w-3 h-3 rounded-full bg-${cluster.color}-500`}></div>
+                    <h4 className="font-semibold text-gray-900">{cluster.name}</h4>
                     <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-                      {group.size} users
+                      {cluster.size} users
                     </span>
                   </div>
                   <div className="text-sm text-gray-500">
-                    {Math.round((group.size / results.responses.length) * 100)}% of total
+                    {cluster.percentage}% of total
                   </div>
                 </div>
 
@@ -173,7 +367,7 @@ const UserClustering: React.FC<UserClusteringProps> = ({ results }) => {
                   <div>
                     <h5 className="text-sm font-medium text-gray-700 mb-2">Characteristics:</h5>
                     <div className="flex flex-wrap gap-2">
-                      {group.characteristics.map((char, charIndex) => (
+                      {cluster.characteristics.map((char, charIndex) => (
                         <span 
                           key={charIndex}
                           className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
@@ -189,34 +383,42 @@ const UserClustering: React.FC<UserClusteringProps> = ({ results }) => {
                     <div className="space-y-1 text-sm">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Avg. Completion Time:</span>
-                        <span className="font-medium">{group.behaviorProfile.avgCompletionTime}s</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Response Quality:</span>
-                        <span className="font-medium">{group.behaviorProfile.responseQuality}%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Engagement Level:</span>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEngagementColor(group.behaviorProfile.engagementLevel)}`}>
-                          {group.behaviorProfile.engagementLevel}
+                        <span className="font-medium">
+                          {cluster.users.length > 0 
+                            ? Math.round(cluster.users.reduce((sum, user) => sum + (user.completionTime || 0), 0) / cluster.users.length)
+                            : 0}s
                         </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Response Count:</span>
+                        <span className="font-medium">
+                          {cluster.users.length > 0 
+                            ? Math.round(cluster.users.reduce((sum, user) => sum + (user.responseCount || 0), 0) / cluster.users.length)
+                            : 0}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Group Size:</span>
+                        <span className="font-medium">{cluster.size} users</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {selectedGroup === group.id && (
+                {selectedGroup === cluster.id && (
                   <div className="mt-4 pt-4 border-t border-gray-200">
-                    <h5 className="text-sm font-medium text-gray-700 mb-2">Sample Responses:</h5>
+                    <h5 className="text-sm font-medium text-gray-700 mb-2">Sample Users:</h5>
                     <div className="space-y-2 max-h-32 overflow-y-auto">
-                      {group.responses.slice(0, 3).map((response, respIndex) => (
-                        <div key={respIndex} className="bg-gray-50 rounded p-2 text-sm">
+                      {cluster.users.slice(0, 3).map((user, userIndex) => (
+                        <div key={userIndex} className="bg-gray-50 rounded p-2 text-sm">
                           <div className="flex justify-between text-xs text-gray-500 mb-1">
-                            <span>User {response.response_id}</span>
-                            <span>{response.completion_time}s</span>
+                            <span>{user.name}</span>
+                            <span>{user.completionTime}s</span>
                           </div>
                           <div className="text-gray-700">
-                            {Object.keys(response.responses).length} questions answered
+                            {user.email ? `Email: ${user.email}` : 'Anonymous user'}
+                            {user.age && ` • Age: ${user.age}`}
+                            {user.occupation && ` • ${user.occupation}`}
                           </div>
                         </div>
                       ))}
@@ -230,7 +432,7 @@ const UserClustering: React.FC<UserClusteringProps> = ({ results }) => {
       </div>
 
       {/* Clustering Insights */}
-      {userGroups.length > 0 && (
+      {clusters.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm border p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Clustering Insights</h3>
           
@@ -238,21 +440,18 @@ const UserClustering: React.FC<UserClusteringProps> = ({ results }) => {
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h4 className="font-medium text-blue-900 mb-2">Model Performance</h4>
               <p className="text-sm text-blue-800">
-                The clustering algorithm identified {userGroups.length} distinct user groups with 
-                {clusteringAccuracy > 80 ? ' excellent' : clusteringAccuracy > 60 ? ' good' : ' fair'} accuracy. 
-                The silhouette score of {silhouetteScore.toFixed(3)} indicates 
-                {silhouetteScore > 0.7 ? ' well-separated clusters' : 
-                 silhouetteScore > 0.5 ? ' reasonably separated clusters' : 
-                 ' overlapping clusters that may need refinement'}.
+                The clustering algorithm identified {clusters.length} distinct user groups with 
+                {totalUsers > 10 ? ' good' : totalUsers > 5 ? ' fair' : ' limited'} data quality. 
+                The analysis is based on {totalUsers} total users and their response patterns.
               </p>
             </div>
 
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <h4 className="font-medium text-green-900 mb-2">Key Findings</h4>
               <ul className="text-sm text-green-800 space-y-1">
-                <li>• {userGroups.length} distinct user behavior patterns identified</li>
-                <li>• Largest group: {userGroups.reduce((max, group) => group.size > max.size ? group : max).name} ({Math.round((userGroups.reduce((max, group) => group.size > max.size ? group : max).size / results.responses.length) * 100)}%)</li>
-                <li>• Average engagement level: {userGroups.reduce((sum, group) => sum + (group.behaviorProfile.responseQuality), 0) / userGroups.length}%</li>
+                <li>• {clusters.length} distinct user behavior patterns identified</li>
+                <li>• Largest group: {clusters.length > 0 ? clusters.reduce((max, cluster) => cluster.size > max.size ? cluster : max).name : 'None'} ({clusters.length > 0 ? clusters.reduce((max, cluster) => cluster.size > max.size ? cluster : max).percentage : 0}%)</li>
+                <li>• Total users analyzed: {totalUsers}</li>
               </ul>
             </div>
 

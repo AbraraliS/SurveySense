@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, BarChart3, Plus, Home, List, Settings } from 'lucide-react';
+import { Menu, X, BarChart3, Plus, Home, List, Settings, User, LogOut, LogIn } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, signOut, loading } = useAuth();
 
   // Handle scroll effect for sticky navbar
   useEffect(() => {
@@ -21,6 +24,7 @@ const Header: React.FC = () => {
   // Close menu when route changes
   useEffect(() => {
     setIsMenuOpen(false);
+    setShowUserMenu(false);
   }, [location]);
 
   // Close menu when clicking outside
@@ -30,11 +34,16 @@ const Header: React.FC = () => {
       if (isMenuOpen && !target.closest('.mobile-menu') && !target.closest('.burger-button')) {
         setIsMenuOpen(false);
       }
+      if (showUserMenu && !target.closest('.user-menu') && !target.closest('.user-button')) {
+        setShowUserMenu(false);
+      }
     };
 
-    if (isMenuOpen) {
+    if (isMenuOpen || showUserMenu) {
       document.addEventListener('click', handleClickOutside);
-      document.body.style.overflow = 'hidden'; // Prevent background scroll
+      if (isMenuOpen) {
+        document.body.style.overflow = 'hidden'; // Prevent background scroll
+      }
     } else {
       document.body.style.overflow = 'unset';
     }
@@ -43,17 +52,26 @@ const Header: React.FC = () => {
       document.removeEventListener('click', handleClickOutside);
       document.body.style.overflow = 'unset';
     };
-  }, [isMenuOpen]);
+  }, [isMenuOpen, showUserMenu]);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  const toggleUserMenu = () => {
+    setShowUserMenu(!showUserMenu);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+    setShowUserMenu(false);
   };
 
   const isActive = (path: string) => {
     return location.pathname === path;
   };
 
-  // 🔥 UPDATED: Removed Analytics and ML Insights
   const navItems = [
     {
       path: '/',
@@ -65,15 +83,20 @@ const Header: React.FC = () => {
       path: '/create',
       label: 'Create Survey',
       icon: Plus,
-      description: 'Build new surveys'
+      description: 'Build new surveys',
+      protected: true
     },
     {
       path: '/surveys',
       label: 'My Surveys',
       icon: List,
-      description: 'Manage your surveys'
+      description: 'Manage your surveys',
+      protected: true
     }
   ];
+
+  // Filter nav items based on auth status
+  const visibleNavItems = navItems.filter(item => !item.protected || user);
 
   return (
     <>
@@ -88,7 +111,7 @@ const Header: React.FC = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
             
-            {/* Logo - Now visible on all screen sizes */}
+            {/* Logo */}
             <div className="flex items-center space-x-3">
               <Link 
                 to="/" 
@@ -113,7 +136,7 @@ const Header: React.FC = () => {
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center space-x-1">
-              {navItems.map((item) => {
+              {visibleNavItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.path);
                 
@@ -146,19 +169,72 @@ const Header: React.FC = () => {
               })}
             </nav>
 
-            {/* Desktop CTA Button */}
+            {/* Desktop Actions */}
             <div className="hidden lg:flex items-center space-x-3">
-              <button
-                onClick={() => navigate('/create')}
-                className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2.5 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-              >
-                <Plus className="w-4 h-4" />
-                <span>New Survey</span>
-              </button>
-              
-              <button className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors">
-                <Settings className="w-5 h-5" />
-              </button>
+              {user ? (
+                <>
+                  {/* Create Survey Button */}
+                  <button
+                    onClick={() => navigate('/create')}
+                    className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2.5 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>New Survey</span>
+                  </button>
+                  
+                  {/* User Menu */}
+                  <div className="relative user-menu">
+                    <button
+                      onClick={toggleUserMenu}
+                      className="user-button flex items-center space-x-2 p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors"
+                    >
+                      <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                        <User className="w-4 h-4 text-white" />
+                      </div>
+                      <span className="text-sm font-medium">{user.email?.split('@')[0]}</span>
+                    </button>
+                    
+                    {showUserMenu && (
+                      <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-20">
+                        <div className="p-3 border-b border-gray-100">
+                          <p className="text-sm font-medium text-gray-900 truncate">{user.email}</p>
+                          <p className="text-xs text-gray-500">Account Settings</p>
+                        </div>
+                        <div className="py-2">
+                          <button className="flex items-center space-x-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                            <Settings className="w-4 h-4" />
+                            <span>Settings</span>
+                          </button>
+                          <button 
+                            onClick={handleSignOut}
+                            className="flex items-center space-x-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                          >
+                            <LogOut className="w-4 h-4" />
+                            <span>Sign Out</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 px-4 py-2 rounded-xl hover:bg-gray-100 transition-colors font-medium"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    <span>Sign In</span>
+                  </Link>
+                  <Link
+                    to="/signup"
+                    className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2.5 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  >
+                    <User className="w-4 h-4" />
+                    <span>Sign Up</span>
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Mobile/Tablet Burger Button */}
@@ -221,7 +297,7 @@ const Header: React.FC = () => {
 
           {/* Menu Items */}
           <nav className="p-6 space-y-2">
-            {navItems.map((item, index) => {
+            {visibleNavItems.map((item, index) => {
               const Icon = item.icon;
               const active = isActive(item.path);
               
@@ -255,23 +331,60 @@ const Header: React.FC = () => {
             })}
           </nav>
 
-          {/* Mobile CTA */}
+          {/* Mobile Actions */}
           <div className="p-6 border-t border-gray-100 space-y-3">
-            <button
-              onClick={() => {
-                navigate('/create');
-                setIsMenuOpen(false);
-              }}
-              className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-4 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg"
-            >
-              <Plus className="w-5 h-5" />
-              <span>Create New Survey</span>
-            </button>
-            
-            <button className="w-full flex items-center justify-center space-x-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-6 py-3 rounded-xl transition-colors">
-              <Settings className="w-4 h-4" />
-              <span>Settings</span>
-            </button>
+            {user ? (
+              <>
+                <button
+                  onClick={() => {
+                    navigate('/create');
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-4 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span>Create New Survey</span>
+                </button>
+                
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                      <User className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{user.email?.split('@')[0]}</p>
+                      <p className="text-xs text-gray-500">Signed in</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleSignOut}
+                    className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Sign out"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="w-full flex items-center justify-center space-x-2 bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>Sign In</span>
+                </Link>
+                <Link
+                  to="/signup"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-4 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg"
+                >
+                  <User className="w-5 h-5" />
+                  <span>Create Account</span>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Footer */}

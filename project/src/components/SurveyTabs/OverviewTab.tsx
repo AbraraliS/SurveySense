@@ -23,7 +23,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ results }) => {
     return acc;
   }, {} as Record<string, number>);
 
-  const registeredUsers = results.responses.filter(r => r.user_id).length;
+  const registeredUsers = results.responses.filter(r => r.respondent_email).length;
   const anonymousUsers = results.responses.length - registeredUsers;
 
   return (
@@ -151,13 +151,20 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ results }) => {
                     <User className="w-4 h-4 text-blue-600" />
                   </div>
                   <div>
-                    <p className="font-medium text-sm">{response.user_name || 'Anonymous User'}</p>
-                    <p className="text-xs text-gray-500">{formatDate(response.submitted_at)}</p>
+                    <p className="font-medium text-sm">{response.respondent_name || 'Anonymous User'}</p>
+                    <p className="text-xs text-gray-500">{formatDate(response.created_at)}</p>
                   </div>
                 </div>
-                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                  {response.user_id ? 'Registered' : 'Anonymous'}
-                </span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                    {response.respondent_email ? 'Registered' : 'Anonymous'}
+                  </span>
+                  {response.completion_time && (
+                    <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                      {Math.floor(response.completion_time / 60)}m {response.completion_time % 60}s
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
           </div>

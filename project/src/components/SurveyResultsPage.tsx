@@ -3,30 +3,19 @@ import { useParams, Link } from 'react-router-dom';
 import { 
   BarChart3, 
   Users, 
-  Calendar, 
   Clock, 
   Download, 
-  Search,
-  User,
-  Mail,
-  Globe,
   ArrowLeft,
-  Eye,
-  Trash2,
   CheckCircle,
   AlertCircle,
   Loader2,
-  X,
   TrendingUp,
   MessageSquare,
-  PieChart,
-  Activity,
-  Share2,
   Copy,
   Brain,
   Menu
 } from 'lucide-react';
-import { getSurveyResults, SurveyResults, SurveyResponse } from '../services/api';
+import { getSurveyResults, SurveyResults } from '../services/api';
 
 // Import ML Components
 import MLInsightsPage from './MLInsights/MLInsightsPage';
@@ -44,6 +33,7 @@ const SurveyResultsPage: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
+    console.log('SurveyResultsPage mounted with surveyId:', surveyId);
     if (surveyId) {
       fetchResults();
     }
@@ -56,24 +46,34 @@ const SurveyResultsPage: React.FC = () => {
       
       const response = await getSurveyResults(surveyId!);
       
-      setResults(response.data);
-    } catch (error) {
+      // Debug: Log the response data
+      console.log('SurveyResultsPage - API response:', response);
+      console.log('SurveyResultsPage - responses count:', response.responses?.length || 0);
+      console.log('SurveyResultsPage - sample response:', response.responses?.[0]);
+      if (response.responses?.[0]) {
+        console.log('SurveyResultsPage - respondent details:', {
+          name: response.responses[0].respondent_name,
+          email: response.responses[0].respondent_email,
+          age: response.responses[0].respondent_age,
+          occupation: response.responses[0].respondent_occupation
+        });
+      }
       
-      setError('Failed to load survey results');
+      setResults(response);
+    } catch (error: any) {
+      console.error('Failed to load survey results:', error);
+      if (error.response?.status === 401) {
+        setError('Please log in to view survey results');
+      } else if (error.response?.status === 404) {
+        setError('Survey not found');
+      } else {
+        setError('Failed to load survey results. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
 
   const copySurveyLink = async () => {
     try {
@@ -214,11 +214,11 @@ const SurveyResultsPage: React.FC = () => {
                   <Users className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 mb-2 sm:mb-0" />
                   <div className="sm:ml-4">
                     <div className="text-xl sm:text-2xl font-bold text-gray-900">
-                      {results.analytics.total_responses}
+                      {results.analytics?.totalResponses || 0}
                     </div>
                     <div className="text-xs sm:text-sm text-gray-600">
-                      <span className="sm:hidden">Responses</span>
-                      <span className="hidden sm:inline">Total Responses</span>
+                      <span className="sm:hidden">Respondents</span>
+                      <span className="hidden sm:inline">Total Respondents</span>
                     </div>
                   </div>
                 </div>
@@ -229,7 +229,7 @@ const SurveyResultsPage: React.FC = () => {
                   <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 mb-2 sm:mb-0" />
                   <div className="sm:ml-4">
                     <div className="text-xl sm:text-2xl font-bold text-gray-900">
-                      {results.analytics.completion_rate}%
+                      {results.analytics?.responseRate || 0}%
                     </div>
                     <div className="text-xs sm:text-sm text-gray-600">
                       <span className="sm:hidden">Complete</span>
@@ -244,7 +244,7 @@ const SurveyResultsPage: React.FC = () => {
                   <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 mb-2 sm:mb-0" />
                   <div className="sm:ml-4">
                     <div className="text-xl sm:text-2xl font-bold text-gray-900">
-                      {Math.floor(results.analytics.average_completion_time / 60)}m {results.analytics.average_completion_time % 60}s
+                      {Math.floor((results.analytics?.completionTime || 0) / 60)}m {(results.analytics?.completionTime || 0) % 60}s
                     </div>
                     <div className="text-xs sm:text-sm text-gray-600">
                       <span className="sm:hidden">Avg Time</span>
@@ -259,7 +259,7 @@ const SurveyResultsPage: React.FC = () => {
                   <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600 mb-2 sm:mb-0" />
                   <div className="sm:ml-4">
                     <div className="text-xl sm:text-2xl font-bold text-gray-900">
-                      {results.survey.questions_count}
+                      {results.questions.length}
                     </div>
                     <div className="text-xs sm:text-sm text-gray-600">Questions</div>
                   </div>

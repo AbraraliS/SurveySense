@@ -1,0 +1,39 @@
+ySense\project\backend\render.yaml
+services:
+  - type: web
+    name: surveysense-backend
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_HOST
+        fromDatabase:
+          name: surveysense-db
+          property: host
+      - key: DB_USER
+        fromDatabase:
+          name: surveysense-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: surveysense-db
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: surveysense-db
+          property: database
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        value: https://your-vercel-domain.vercel.app
+
+databases:
+  - name: surveysense-db
+    databaseName: surveysense
+    user: surveysense_user

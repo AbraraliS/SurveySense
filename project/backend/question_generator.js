@@ -151,4 +151,6 @@ Make sure to return exactly ${questionCount} questions total (${mcq} multiple ch
   }
 }
 
-module.exports = { generateSurveyQuestions };
+module.exports = {
+  generateSurveyQuestions
+};
