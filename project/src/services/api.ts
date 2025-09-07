@@ -23,7 +23,9 @@ api.interceptors.request.use(
       
       return config;
     } catch (error) {
-      console.warn('Failed to add auth token to request:', error);
+      if (!import.meta.env.PROD) {
+        console.warn('Failed to add auth token to request:', error);
+      }
       return config;
     }
   },
@@ -171,11 +173,11 @@ export const getAllSurveys = async (): Promise<Survey[]> => {
     const response = await api.get('/surveys');
     return response.data;
   } catch (error: any) {
-    console.error('Failed to fetch surveys:', error);
+    if (!import.meta.env.PROD) console.error('Failed to fetch surveys:', error);
     
     // If backend is not available or has errors, return mock data
     if (error.code === 'ERR_NETWORK' || error.response?.status >= 500) {
-      console.warn('Backend error, returning mock data for development');
+      if (!import.meta.env.PROD) console.warn('Backend error, returning mock data for development');
       return [
         {
           survey_id: 'mock-1',
@@ -217,12 +219,12 @@ export const getAllSurveys = async (): Promise<Survey[]> => {
 // Get single survey (protected)
 export const getSurvey = async (surveyId: string) => {
   try {
-    console.log('API: Getting survey', surveyId);
+    if (!import.meta.env.PROD) console.log('API: Getting survey', surveyId);
     const response = await api.get(`/survey/${surveyId}`);
-    console.log('API: Survey response', response);
+    if (!import.meta.env.PROD) console.log('API: Survey response', response);
     return response;
   } catch (error: any) {
-    console.error('API: Failed to get survey:', error);
+    if (!import.meta.env.PROD) console.error('API: Failed to get survey:', error);
     throw error;
   }
 };
@@ -230,12 +232,12 @@ export const getSurvey = async (surveyId: string) => {
 // Get public survey (no auth required)
 export const getPublicSurvey = async (surveyId: string) => {
   try {
-    console.log('API: Getting public survey', surveyId);
+    if (!import.meta.env.PROD) console.log('API: Getting public survey', surveyId);
     const response = await axios.get(`${env.VITE_API_BASE_URL}/survey/${surveyId}/public`);
-    console.log('API: Public survey response', response);
+    if (!import.meta.env.PROD) console.log('API: Public survey response', response);
     return response;
   } catch (error: any) {
-    console.error('API: Failed to get public survey:', error);
+    if (!import.meta.env.PROD) console.error('API: Failed to get public survey:', error);
     throw error;
   }
 };
@@ -243,11 +245,13 @@ export const getPublicSurvey = async (surveyId: string) => {
 // Create new survey
 export const createSurvey = async (surveyData: CreateSurveyData) => {
   try {
-    console.log('Creating survey with data:', surveyData);
+    if (!import.meta.env.PROD) console.log('Creating survey with data:', surveyData);
     const response = await api.post('/survey', surveyData);
-    console.log('Full response:', response);
-    console.log('Response status:', response.status);
-    console.log('Response data:', response.data);
+    if (!import.meta.env.PROD) {
+      console.log('Full response:', response);
+      console.log('Response status:', response.status);
+      console.log('Response data:', response.data);
+    }
     
     // Handle different response formats
     if (response.data && response.data.success) {
@@ -259,14 +263,16 @@ export const createSurvey = async (surveyData: CreateSurveyData) => {
     }
     
   } catch (error: any) {
-    console.error('Failed to create survey:', error);
-    console.error('Error response:', error.response);
-    console.error('Error status:', error.response?.status);
-    console.error('Error data:', error.response?.data);
+    if (!import.meta.env.PROD) {
+      console.error('Failed to create survey:', error);
+      console.error('Error response:', error.response);
+      console.error('Error status:', error.response?.status);
+      console.error('Error data:', error.response?.data);
+    }
     
     // The backend is working, so this might be a parsing issue
     if (error.response?.status === 201 && error.response?.data) {
-      console.warn('Got 201 but axios thinks it\'s an error, returning data anyway');
+      if (!import.meta.env.PROD) console.warn('Got 201 but axios thinks it\'s an error, returning data anyway');
       return { data: error.response.data };
     }
     
@@ -280,7 +286,7 @@ export const updateSurvey = async (surveyId: string, surveyData: UpdateSurveyDat
     const response = await api.put(`/survey/${surveyId}`, surveyData);
     return response;
   } catch (error: any) {
-    console.error('Failed to update survey:', error);
+    if (!import.meta.env.PROD) console.error('Failed to update survey:', error);
     throw error;
   }
 };
@@ -291,7 +297,7 @@ export const deleteSurvey = async (surveyId: string) => {
     const response = await api.delete(`/survey/${surveyId}`);
     return response;
   } catch (error: any) {
-    console.error('Failed to delete survey:', error);
+    if (!import.meta.env.PROD) console.error('Failed to delete survey:', error);
     throw error;
   }
 };
@@ -302,7 +308,7 @@ export const getSurveyQuestions = async (surveyId: string): Promise<Question[]> 
     const response = await api.get(`/survey/${surveyId}/questions`);
     return response.data;
   } catch (error: any) {
-    console.error('Failed to fetch survey questions:', error);
+    if (!import.meta.env.PROD) console.error('Failed to fetch survey questions:', error);
     throw error;
   }
 };
@@ -333,7 +339,7 @@ export const submitSurveyResponse = async (surveyId: string, data: {
     });
     return response;
   } catch (error: any) {
-    console.error('Failed to submit survey response:', error);
+    if (!import.meta.env.PROD) console.error('Failed to submit survey response:', error);
     throw error;
   }
 };
@@ -344,7 +350,7 @@ export const getSurveyResponses = async (surveyId: string): Promise<SurveyRespon
     const response = await api.get(`/survey/${surveyId}/responses`);
     return response.data;
   } catch (error: any) {
-    console.error('Failed to fetch survey responses:', error);
+    if (!import.meta.env.PROD) console.error('Failed to fetch survey responses:', error);
     throw error;
   }
 };
@@ -355,7 +361,7 @@ export const getSurveyAnalytics = async (surveyId: string) => {
     const response = await api.get(`/survey/${surveyId}/analytics`);
     return response.data;
   } catch (error: any) {
-    console.error('Failed to fetch survey analytics:', error);
+    if (!import.meta.env.PROD) console.error('Failed to fetch survey analytics:', error);
     throw error;
   }
 };
@@ -412,7 +418,7 @@ export const getSurveyResults = async (surveyId: string): Promise<SurveyResults>
 // Generate questions using AI (protected)
 export const generateQuestions = async (topic: string, audience: string, numQuestions: number) => {
   try {
-    console.log('Calling generate questions API with:', { topic, audience, numQuestions });
+    if (!import.meta.env.PROD) console.log('Calling generate questions API with:', { topic, audience, numQuestions });
     
     const response = await api.post('/generate-questions', {
       topic: topic.trim(),
@@ -420,11 +426,13 @@ export const generateQuestions = async (topic: string, audience: string, numQues
       numQuestions: parseInt(numQuestions.toString())
     });
     
-    console.log('Generate questions response:', response.data);
+    if (!import.meta.env.PROD) console.log('Generate questions response:', response.data);
     return response;
   } catch (error: any) {
-    console.error('Failed to generate questions:', error);
-    console.error('Error response:', error.response?.data);
+    if (!import.meta.env.PROD) {
+      console.error('Failed to generate questions:', error);
+      console.error('Error response:', error.response?.data);
+    }
     throw error;
   }
 };
@@ -450,7 +458,7 @@ export const getMLInsights = async (surveyId: string): Promise<{ data: MLInsight
   } catch (error: any) {
     // Handle 404 gracefully - ML insights endpoint doesn't exist yet
     if (error.response?.status === 404 || error.response?.status === 501) {
-      console.log('ML insights endpoint not available, using mock data for survey:', surveyId);
+      if (!import.meta.env.PROD) console.log('ML insights endpoint not available, using mock data for survey:', surveyId);
       
       // Return mock data for development/testing
       return {
@@ -505,7 +513,7 @@ export const getMLInsights = async (surveyId: string): Promise<{ data: MLInsight
     }
     
     // Log other errors but don't spam the console
-    console.error('Failed to fetch ML insights:', error);
+    if (!import.meta.env.PROD) console.error('Failed to fetch ML insights:', error);
     throw error;
   }
 };
@@ -551,12 +559,12 @@ export const getMLAnalysis = async (surveyId: string) => {
 // Get questions for a survey
 export const getQuestions = async (surveyId: string) => {
   try {
-    console.log('API: Getting questions for survey', surveyId);
+    if (!import.meta.env.PROD) console.log('API: Getting questions for survey', surveyId);
     const response = await api.get(`/survey/${surveyId}/questions`);
-    console.log('API: Questions response', response);
+    if (!import.meta.env.PROD) console.log('API: Questions response', response);
     return response;
   } catch (error: any) {
-    console.error('API: Failed to get questions:', error);
+    if (!import.meta.env.PROD) console.error('API: Failed to get questions:', error);
     // Return empty array instead of throwing
     return { data: [] };
   }
@@ -565,12 +573,12 @@ export const getQuestions = async (surveyId: string) => {
 // Get responses for a survey
 export const getResponses = async (surveyId: string) => {
   try {
-    console.log('API: Getting responses for survey', surveyId);
+    if (!import.meta.env.PROD) console.log('API: Getting responses for survey', surveyId);
     const response = await api.get(`/survey/${surveyId}/responses`);
-    console.log('API: Responses response', response);
+    if (!import.meta.env.PROD) console.log('API: Responses response', response);
     return response;
   } catch (error: any) {
-    console.error('API: Failed to get responses:', error);
+    if (!import.meta.env.PROD) console.error('API: Failed to get responses:', error);
     // Return empty array instead of throwing
     return { data: [] };
   }
@@ -582,7 +590,7 @@ export const updateQuestion = async (questionId: string, questionData: any) => {
     const response = await api.put(`/question/${questionId}`, questionData);
     return response;
   } catch (error: any) {
-    console.error('Failed to update question:', error);
+    if (!import.meta.env.PROD) console.error('Failed to update question:', error);
     throw error;
   }
 };
@@ -596,11 +604,11 @@ export const createQuestion = async (questionData: {
   order_index: number;
 }) => {
   try {
-    console.log('Creating question:', questionData);
+    if (!import.meta.env.PROD) console.log('Creating question:', questionData);
     const response = await api.post('/question', questionData);
     return response;
   } catch (error: any) {
-    console.error('Failed to create question:', error);
+    if (!import.meta.env.PROD) console.error('Failed to create question:', error);
     throw error;
   }
 };

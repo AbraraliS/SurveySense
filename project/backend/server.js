@@ -7,6 +7,12 @@ const { generateSurveyQuestions } = require('./question_generator');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Reduce console noise in production (keep errors)
+if (process.env.NODE_ENV === 'production') {
+  console.log = () => {};
+  console.debug = () => {};
+}
+
 // Initialize Supabase client with service role key
 const supabase = createClient(
   process.env.SUPABASE_URL,
