@@ -49,7 +49,7 @@ const Footer: React.FC = () => {
     {
       name: 'Facebook',
       icon: Facebook,
-      url: 'https://facebook.com/abrarali',
+      url: 'https://www.facebook.com/share/171eyKNhn6/',
       color: 'hover:text-blue-700',
       bgColor: 'hover:bg-blue-50'
     },
