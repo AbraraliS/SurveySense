@@ -447,6 +447,15 @@ export const fixResponseCounts = async () => {
   }
 };
 
+export const fixMyCounts = async () => {
+  try {
+    const response = await api.post('/fix-response-counts/mine');
+    return response.data;
+  } catch (error: any) {
+    throw error;
+  }
+};
+
 // ML Analysis Functions
 
 // Get ML insights (protected)

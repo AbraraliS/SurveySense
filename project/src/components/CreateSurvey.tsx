@@ -166,7 +166,7 @@ const CreateSurvey: React.FC = () => {
         
         // Wait 2 seconds then redirect to edit page
         setTimeout(() => {
-          navigate(`/edit-survey/${newSurveyId}`);
+          navigate(`/survey/${newSurveyId}/edit`);
         }, 2000);
       }
       
@@ -466,7 +466,7 @@ const CreateSurvey: React.FC = () => {
                 {/* Primary Actions */}
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button
-                    onClick={() => navigate(`/edit-survey/${surveyId}`)}
+                    onClick={() => navigate(`/survey/${surveyId}/edit`)}
                     className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 px-6 rounded-xl font-bold text-base sm:text-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center space-x-2"
                   >
                     <Edit className="w-5 h-5" />

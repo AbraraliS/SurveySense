@@ -195,22 +195,9 @@ app.get('/api/surveys', verifyToken, async (req, res) => {
       res.json(surveys || []);
       
     } catch (createdByError) {
-      // If created_by column doesn't exist, return all surveys (temporary)
-      console.warn('created_by column not found, returning all surveys:', createdByError.message);
-      
-      const { data: allSurveys, error: allError } = await supabase
-        .from('surveys')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (allError) {
-        return res.status(500).json({ 
-          error: 'Failed to fetch surveys', 
-          details: allError.message 
-        });
-      }
-      
-      res.json(allSurveys || []);
+      // If created_by column doesn't exist, do NOT leak other users' surveys
+      console.warn('created_by column not found; returning empty list for safety:', createdByError.message);
+      return res.json([]);
     }
     
   } catch (error) {
@@ -461,6 +448,10 @@ app.get('/api/survey/:id/questions', async (req, res) => {
 
     if (error) {
       console.error('Database error fetching questions:', error);
+      // If table missing or not created yet, return empty set instead of 500
+      if (error.code === 'PGRST116' || (error.message || '').includes('does not exist')) {
+        return res.json([]);
+      }
       return res.status(500).json({ 
         error: 'Failed to fetch questions', 
         details: error.message 
@@ -859,6 +850,56 @@ app.post('/api/fix-response-counts', verifyToken, async (req, res) => {
   } catch (error) {
     console.error('Error in manual fix:', error);
     res.status(500).json({ error: 'Failed to fix response counts' });
+  }
+});
+
+// Recalculate counts only for the authenticated user's surveys
+app.post('/api/fix-response-counts/mine', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    // Fetch surveys owned by user
+    const { data: surveys, error: surveysError } = await supabase
+      .from('surveys')
+      .select('survey_id')
+      .eq('created_by', userId);
+
+    if (surveysError) {
+      return res.status(500).json({ error: 'Failed to fetch user surveys' });
+    }
+
+    for (const s of surveys || []) {
+      // Count sessions (respondents)
+      const { data: sessions, error: sessionsError } = await supabase
+        .from('response_sessions')
+        .select('session_id')
+        .eq('survey_id', s.survey_id);
+
+      // Count questions
+      const { data: questions, error: questionsError } = await supabase
+        .from('questions')
+        .select('question_id')
+        .eq('survey_id', s.survey_id);
+
+      if (sessionsError || questionsError) {
+        continue;
+      }
+
+      const updates = {
+        responses_count: (sessions || []).length,
+        questions_count: (questions || []).length,
+        updated_at: new Date().toISOString()
+      };
+
+      await supabase
+        .from('surveys')
+        .update(updates)
+        .eq('survey_id', s.survey_id)
+        .eq('created_by', userId);
+    }
+
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fix counts for user' });
   }
 });
 

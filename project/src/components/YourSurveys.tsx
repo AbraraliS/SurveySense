@@ -19,7 +19,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getAllSurveys, deleteSurvey, Survey as APISurvey } from '../services/api';
+import { getAllSurveys, deleteSurvey, Survey as APISurvey, fixMyCounts } from '../services/api';
 import ShareModal from './ShareModal';
 
 interface Survey extends APISurvey {
@@ -44,7 +44,18 @@ const YourSurveys: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-      fetchSurveys();
+      (async () => {
+        try {
+          setLoading(true);
+          setError('');
+          // Auto-fix counts for this user, then fetch fresh surveys
+          await fixMyCounts();
+        } catch (e:any) {
+          // non-blocking
+        } finally {
+          await fetchSurveys();
+        }
+      })();
     }
   }, [user]);
 
