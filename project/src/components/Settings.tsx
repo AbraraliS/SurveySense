@@ -188,11 +188,11 @@ const Settings: React.FC = () => {
           <p className="text-gray-600">If you find SurveySense helpful, consider supporting development.</p>
           <div className="flex flex-wrap gap-3">
             <a href="https://www.buymeacoffee.com/" target="_blank" rel="noreferrer" className="px-4 py-2 rounded-lg border hover:bg-gray-50">Buy me a coffee</a>
-            <a href="https://paypal.me/" target="_blank" rel="noreferrer" className="px-4 py-2 rounded-lg border hover:bg-gray-50">PayPal</a>
+            <a href="https://paypal.me/AbrarAli07" target="_blank" rel="noreferrer" className="px-4 py-2 rounded-lg border hover:bg-gray-50">PayPal</a>
           </div>
           <div className="mt-4">
             <h4 className="font-medium text-gray-900 mb-1">UPI (India)</h4>
-            <code className="px-2 py-1 bg-gray-100 rounded">your-upi-id@bank</code>
+            <code className="px-2 py-1 bg-gray-100 rounded">shadowaz@airtel</code>
           </div>
         </div>
       )}

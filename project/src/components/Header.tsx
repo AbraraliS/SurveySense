@@ -282,18 +282,20 @@ const Header: React.FC = () => {
             isMenuOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
         >
-          {/* Menu Header */}
-          <div className="p-6 border-b border-gray-100">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <BarChart3 className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h2 className="font-bold text-gray-900">SurveySense</h2>
-                <p className="text-xs text-gray-500">Navigation Menu</p>
+          {/* Menu Header - User Info */}
+          {user && (
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                  <User className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-gray-900">{user.email?.split('@')[0]}</h2>
+                  <p className="text-xs text-gray-500">Signed in</p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Menu Items */}
           <nav className="p-6 space-y-2">
@@ -346,24 +348,32 @@ const Header: React.FC = () => {
                   <span>Create New Survey</span>
                 </button>
                 
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                      <User className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{user.email?.split('@')[0]}</p>
-                      <p className="text-xs text-gray-500">Signed in</p>
-                    </div>
+                <Link
+                  to="/settings"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="w-full flex items-center space-x-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
+                >
+                  <div className="w-8 h-8 bg-gray-200 rounded-lg flex items-center justify-center">
+                    <Settings className="w-4 h-4 text-gray-600" />
                   </div>
-                  <button
-                    onClick={handleSignOut}
-                    className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Sign out"
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </button>
-                </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">Settings</p>
+                    <p className="text-xs text-gray-500">Account & preferences</p>
+                  </div>
+                </Link>
+                
+                <button
+                  onClick={handleSignOut}
+                  className="w-full flex items-center space-x-3 p-3 bg-red-50 hover:bg-red-100 rounded-xl transition-colors"
+                >
+                  <div className="w-8 h-8 bg-red-200 rounded-lg flex items-center justify-center">
+                    <LogOut className="w-4 h-4 text-red-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-red-900">Sign Out</p>
+                    <p className="text-xs text-red-500">End your session</p>
+                  </div>
+                </button>
               </>
             ) : (
               <>
