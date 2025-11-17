@@ -187,19 +187,25 @@ const Home: React.FC = () => {
                   and actionable insights that drive better decisions.
                 </p>
                 
-                <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-                  <Link
-                    to="/signup"
-                    className="group bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 flex items-center justify-center space-x-2"
-                  >
-                    <span>Get Started Free</span>
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                  <button className="bg-white text-gray-700 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-gray-50 transition-all duration-300 shadow-lg hover:shadow-xl border border-gray-200 flex items-center justify-center space-x-2">
-                    <Play className="w-5 h-5" />
-                    <span>Watch Demo</span>
-                  </button>
-                </div>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">  
+  <Link
+    to="/signup"
+    className="group bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 flex items-center justify-center space-x-2"
+  >
+    <span>Get Started Free</span>
+    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+  </Link>
+
+  <a
+    href="https://youtu.be/mZARUwXdfHw?si=pvnsbOEmDjvph85c"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="bg-white text-gray-700 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-gray-50 transition-all duration-300 shadow-lg hover:shadow-xl border border-gray-200 flex items-center justify-center space-x-2"
+  >
+    <Play className="w-5 h-5" />
+    <span>Watch Demo</span>
+  </a>
+</div>
                 
                 <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-600">
                   <div className="flex items-center space-x-2">
